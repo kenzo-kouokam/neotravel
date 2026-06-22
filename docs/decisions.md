@@ -8,16 +8,20 @@
 
 ## [22/06] Choix de stack
 
-**Décision** : Option [A / B]
+**Décision** : Option A — n8n
 
 **Arguments pour** :
--
+- Orchestration visuelle des workflows sans code
+- AI Agent natif avec gestion des tools
+- Schedule Trigger intégré pour les relances
+- Pas de vendor lock-in LLM (compatible OpenAI, Anthropic, etc.)
 
 **Arguments contre** :
--
+- Instance à héberger ou payer (n8n Cloud)
+- Moins de contrôle fin que du code pur
 
 **Risques identifiés** :
--
+- Disponibilité de l'instance n8n en production
 
 ---
 
@@ -43,9 +47,9 @@
 
 | Membre | Rôle |
 |---|---|
-| [Prénom A] | PM / Analyste |
-| [Prénom B] | Dev backend |
-| [Prénom C] | Dev front / Intégrations |
+| Mohamed | PM / Analyste |
+| Mathis | Dev backend |
+| Omar | Dev front / Intégrations |
 
 ---
 

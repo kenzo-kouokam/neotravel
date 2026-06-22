@@ -10,13 +10,12 @@
 
 ## Stack
 
-**Option choisie** : [A — n8n / B — Vercel AI SDK]  
-**Justification** : [à compléter]
+**Option choisie** : A — n8n
 
 | Brique | Outil |
 |---|---|
 | Front | Next.js + Tailwind — Vercel |
-| Agent IA | [n8n AI Agent / Vercel AI SDK] |
+| Agent IA | n8n AI Agent |
 | Données | [Airtable / Supabase] |
 | Calcul devis | calculer_devis() — jamais le LLM |
 | Emails | Resend |
