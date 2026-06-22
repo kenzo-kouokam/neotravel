@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
+    "airtable": "^0.12.2",
+    "date-fns": "^4.4.0",
+    "resend": "^6.14.0",
+    "zod": "^4.4.3"
+  }
+}
