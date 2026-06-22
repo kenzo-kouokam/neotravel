@@ -4,7 +4,7 @@
 
 ## Liens
 
-- [Board Agile Notion](lien_à_ajouter)
+- [Board Agile Notion](https://app.notion.com/p/3877e71d574681eb9bd2c8bbbbad5e4a)
 - [Déploiement Vercel](lien_à_ajouter)
 - [Instance n8n](lien_à_ajouter)
 
