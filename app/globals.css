@@ -1,26 +1,56 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Palette voyage — terre, sunset, ciel */
+  --background: #fdfaf6; /* crème */
+  --foreground: #1a1410; /* brun foncé */
+
+  --brand-ember: #d97706; /* ambre — soleil couchant */
+  --brand-ember-dark: #b45309;
+  --brand-sky: #0c4a6e; /* bleu profond — ciel/horizon */
+  --brand-sand: #fef3e2; /* sable clair */
+  --brand-clay: #7c2d12; /* terre cuite */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-ember: var(--brand-ember);
+  --color-brand-ember-dark: var(--brand-ember-dark);
+  --color-brand-sky: var(--brand-sky);
+  --color-brand-sand: var(--brand-sand);
+  --color-brand-clay: var(--brand-clay);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Fond hero — dégradé professionnel sans photo */
+.hero-bg {
+  background-color: #fdfaf6;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 65% 40%, rgba(217, 119, 6, 0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 10% 80%, rgba(124, 45, 18, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(12, 74, 110, 0.04) 0%, transparent 60%);
+}
+
+/* Gradient sunset utilisé dans le CTA principal */
+.cta-sunset {
+  background: linear-gradient(
+    135deg,
+    var(--brand-ember) 0%,
+    var(--brand-clay) 100%
+  );
+}
+.cta-sunset:hover {
+  background: linear-gradient(
+    135deg,
+    var(--brand-ember-dark) 0%,
+    #5e1a0a 100%
+  );
 }
