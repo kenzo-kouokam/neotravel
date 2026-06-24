@@ -68,24 +68,87 @@ Champs **obligatoires** pour un devis : `depart, destination, dateDepart, nbPass
 
 ---
 
-## 3. Construction du workflow dans n8n
+## 3. Tuto étape par étape — obtenir l'URL du webhook
 
-1. **Créer une instance n8n**
-   - Option simple : [n8n Cloud](https://n8n.io) (essai gratuit).
-   - Option self-hosted : `npx n8n` ou Docker.
+### Étape 1 — Créer un compte n8n Cloud (gratuit)
 
-2. **Node 1 — Webhook**
-   - Type : `Webhook`
-   - Méthode : `POST`
-   - Path : ex. `neotravel-chat`
-   - Mode de réponse : **"Using Respond to Webhook node"** (pour pouvoir
-     renvoyer un JSON construit à la fin).
-   - L'URL de production de ce webhook → à coller dans `.env.local` :
-     ```
-     N8N_WEBHOOK_URL=https://<ton-instance>.app.n8n.cloud/webhook/neotravel-chat
-     ```
+1. Aller sur **https://n8n.io** → cliquer **"Get started for free"**
+2. Créer un compte (email + mot de passe)
+3. Choisir le plan **Starter** (gratuit, pas de carte bancaire)
+4. n8n crée automatiquement ton instance, par exemple :
+   ```
+   https://moham-xyz.app.n8n.cloud
+   ```
 
-3. **Node 2 — AI Agent**
+---
+
+### Étape 2 — Créer un nouveau workflow
+
+1. Dans le dashboard n8n, cliquer **"+ New workflow"** (bouton en haut à droite)
+2. Nommer le workflow : `Neotravel - Agent chat`
+3. Tu arrives sur un canvas vide avec un nœud `+` au centre
+
+---
+
+### Étape 3 — Ajouter le nœud Webhook
+
+1. Cliquer sur le **`+`** au centre du canvas
+2. Dans la barre de recherche, taper `webhook` → sélectionner **"Webhook"**
+3. Dans le panneau de droite, configurer :
+   - **HTTP Method** → `POST`
+   - **Path** → taper `neotravel-chat` (tu choisis, c'est juste un identifiant)
+   - **Respond** → sélectionner `Using Respond to Webhook Node`
+4. Cliquer **"Save"** (icône disquette en haut)
+
+---
+
+### Étape 4 — Récupérer l'URL de production
+
+Dans le nœud Webhook, tu vois **deux URLs** :
+
+| URL | À quoi ça sert |
+|-----|----------------|
+| **Test URL** | Pour tester dans n8n (bouton "Listen for test event") |
+| **Production URL** | Celle à utiliser dans `.env.local` ✅ |
+
+La **Production URL** ressemble à :
+```
+https://moham-xyz.app.n8n.cloud/webhook/neotravel-chat
+```
+
+> ⚠️ La Test URL ne fonctionne que quand le workflow est en mode "test" dans n8n.
+> La Production URL fonctionne en permanence une fois le workflow **activé**.
+
+---
+
+### Étape 5 — Copier l'URL dans le projet
+
+1. Créer le fichier `.env.local` à la racine du projet (s'il n'existe pas) :
+   ```
+   N8N_WEBHOOK_URL=https://moham-xyz.app.n8n.cloud/webhook/neotravel-chat
+   ```
+2. Relancer le serveur Next.js :
+   ```bash
+   npm run dev
+   ```
+3. Le chatbot est maintenant connecté à n8n (même si le workflow est vide pour l'instant)
+
+---
+
+### Étape 6 — Activer le workflow
+
+1. Dans n8n, cliquer le bouton toggle en haut à droite du canvas : **"Inactive → Active"**
+2. Le workflow est maintenant live — la Production URL répond aux requêtes
+
+> Sans cette étape, la Production URL renvoie une erreur 404.
+
+---
+
+## 4. Construction du workflow dans n8n (suite)
+
+Une fois l'URL récupérée (étapes 1–6 ci-dessus), construire les nœuds suivants :
+
+**Node 2 — AI Agent**
    - Type : `AI Agent` (LangChain).
    - **System Message** : copier-coller le contenu de
      [`src/agent/prompt-systeme.md`](../src/agent/prompt-systeme.md).
@@ -93,7 +156,7 @@ Champs **obligatoires** pour un devis : `depart, destination, dateDepart, nbPass
      les *Credentials* n8n, pas dans le repo.
    - **Input** : mapper l'historique `messages` reçu du webhook.
 
-4. **Node 3 — Tool `calculer_devis`** (peut être branché plus tard, Jour 3)
+**Node 3 — Tool `calculer_devis`** (peut être branché plus tard, Jour 3)
    - L'agent ne calcule JAMAIS le prix lui-même.
    - Option A : node *Code* qui réimplémente la logique de
      `src/tools/calculer-devis.ts`.
@@ -101,13 +164,13 @@ Champs **obligatoires** pour un devis : `depart, destination, dateDepart, nbPass
      `/api/devis` (à créer Jour 3) exposant `calculer_devis()`.
    - Recommandé : Option B, pour garder une seule source de vérité du calcul.
 
-5. **Node 4 — Respond to Webhook**
+**Node 4 — Respond to Webhook**
    - Construire le JSON de réponse au format du contrat ci-dessus
      (`reply`, `lead`, `champsManquants`).
 
 ---
 
-## 4. Sécurité
+## 5. Sécurité
 
 - Mettre une clé dans le webhook (Header Auth) et la reporter dans
   `N8N_API_KEY` (`.env.local`). Le proxy l'enverra automatiquement.
@@ -115,7 +178,7 @@ Champs **obligatoires** pour un devis : `depart, destination, dateDepart, nbPass
 
 ---
 
-## 5. Test de bout en bout
+## 6. Test de bout en bout
 
 1. Renseigner `N8N_WEBHOOK_URL` (et `N8N_API_KEY`) dans `.env.local`.
 2. Relancer `npm run dev`.
