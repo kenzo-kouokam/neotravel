@@ -2,19 +2,20 @@
  * calculer_devis() — Moteur de tarification déterministe de Neotravel.
  *
  * RÈGLE D'OR : ce module ne fait JAMAIS appel à un LLM. Le prix est calculé
- * de manière déterministe, documentée et auditable à partir des matrices
- * tarifaires ci-dessous. L'agent IA appelle cette fonction comme un outil ;
- * il ne calcule jamais lui-même.
+ * de manière déterministe, documentée et auditable à partir des règles
+ * officielles "REGLES DE CALCUL COTATION DEVIS NEOTRAVEL".
  *
- * Toutes les matrices sont regroupées dans `CONFIG_PRICING` pour pouvoir être
- * modifiées sans toucher à la logique de calcul.
+ * Source des matrices :
+ *   - PDF "REGLES DE CALCUL COTATION DEVIS NEOTRAVEL" (grille forfait, A/R,
+ *     coefficients, marge).
+ *   - Brief général Neotravel (TVA 10 %, options guide/nuit chauffeur/péages).
  */
 
 // ──────────────────────────────────────────────────────────────────────────
 // Types
 // ──────────────────────────────────────────────────────────────────────────
 
-export type TypeVehicule = "minibus" | "autocar" | "double_etage";
+export type TypeTrajet = "simple" | "aller_retour";
 
 export type TypeOption =
   | "guide" // accompagnateur — +80 €/jour
@@ -36,7 +37,8 @@ export interface ParamsDevis {
   /** Date de la demande (ISO 8601). Défaut : aujourd'hui. */
   date_demande?: string;
   distance_km: number;
-  type_vehicule?: TypeVehicule;
+  /** "simple" (aller seul) ou "aller_retour". Défaut : "simple". */
+  type_trajet?: TypeTrajet;
   options?: Option[];
 }
 
@@ -65,11 +67,35 @@ export interface ResultatDevis {
 // ──────────────────────────────────────────────────────────────────────────
 
 export const CONFIG_PRICING = {
-  /** Base distance. Valeurs par défaut — à aligner sur les règles internes. */
-  base: {
-    prix_km: 2.5, // €/km
-    prix_minimum: 250, // € plancher
-  },
+  /**
+   * Grille de tarif au forfait (transfert simple) jusqu'à 180 km.
+   * Clé = palier KM (arrondi supérieur à la dizaine), valeur = prix forfait en €.
+   * Source : PDF officiel "REGLES DE CALCUL COTATION DEVIS NEOTRAVEL".
+   */
+  grille_forfait_km: {
+    10: 250,
+    20: 250,
+    30: 250,
+    40: 320,
+    50: 350,
+    60: 390,
+    70: 430,
+    80: 500,
+    90: 540,
+    100: 580,
+    110: 620,
+    120: 660,
+    130: 700,
+    140: 740,
+    150: 780,
+    160: 820,
+    170: 860,
+    180: 900,
+  } as Record<number, number>,
+
+  /** Au-delà de 180 km (transfert simple) : (KM × 2) × 2,5 €/km = 5 €/km. */
+  prix_km_au_dela: 5,
+  seuil_forfait_km: 180,
 
   /** Tableau 2a — Saisonnalité, par mois de départ (1 = janvier). */
   saisonnalite: {
@@ -89,14 +115,14 @@ export const CONFIG_PRICING = {
 
   /**
    * Tableau 2b — Urgence (date demande vs date départ).
-   * Seuils en jours d'anticipation (hypothèses documentées, à confirmer avec
-   * les règles de pricing complètes de Neotravel).
+   * Les SEUILS EN JOURS ne sont pas dans le PDF officiel — hypothèses à
+   * confirmer avec Neotravel. Les taux, eux, sont conformes au PDF.
    */
   urgence: {
     prioritaire: { seuil_max_jours: 7, libelle: "DD_PRIORITAIRE", taux: 0.1 },
     urgent: { seuil_max_jours: 30, libelle: "DD_URGENT", taux: 0.05 },
     normal: { seuil_max_jours: 90, libelle: "DD_NORMAL", taux: -0.05 },
-    anticipe: { libelle: "DD_3MOISETPLUS", taux: -0.1 }, // >= 90 jours
+    anticipe: { libelle: "DD_3MOISETPLUS", taux: -0.1 },
   },
 
   /** Tableau 2c — Capacité, par tranche de passagers. */
@@ -109,7 +135,7 @@ export const CONFIG_PRICING = {
   ],
   capacite_max: 85,
 
-  /** Tableau 3 — Options & TVA & marge. */
+  /** Options (brief général Neotravel). */
   options: {
     guide: 80, // €/jour
     nuit_chauffeur: 120, // €/nuit
@@ -125,6 +151,19 @@ export const CONFIG_PRICING = {
 /** Arrondi monétaire à 2 décimales, stable. */
 function arrondi(montant: number): number {
   return Math.round((montant + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Retourne la base de prix selon la grille forfaitaire (≤ 180 km) ou la
+ * formule linéaire au-delà. Le palier KM est arrondi à la dizaine supérieure
+ * (ex. 45 km → palier 50 km).
+ */
+function baseTransfertSimple(distance_km: number): number {
+  if (distance_km <= CONFIG_PRICING.seuil_forfait_km) {
+    const palier = Math.max(10, Math.ceil(distance_km / 10) * 10);
+    return CONFIG_PRICING.grille_forfait_km[palier];
+  }
+  return distance_km * CONFIG_PRICING.prix_km_au_dela;
 }
 
 function coefficientSaison(dateDepart: Date): Coefficient {
@@ -149,7 +188,6 @@ function coefficientUrgence(dateDemande: Date, dateDepart: Date): Coefficient {
 
 function coefficientCapacite(nbPassagers: number): Coefficient {
   const tranche = CONFIG_PRICING.capacite.find((t) => nbPassagers <= t.max);
-  // Garanti non-null car nbPassagers <= capacite_max est vérifié en amont.
   return { libelle: `Capacité ${tranche!.libelle}`, taux: tranche!.taux };
 }
 
@@ -163,6 +201,7 @@ export function calculerDevis(params: ParamsDevis): ResultatDevis {
     date_depart,
     date_demande,
     distance_km,
+    type_trajet = "simple",
     options = [],
   } = params;
 
@@ -173,7 +212,7 @@ export function calculerDevis(params: ParamsDevis): ResultatDevis {
   if (nb_passagers > CONFIG_PRICING.capacite_max) {
     throw new Error(
       `Capacité dépassée (${nb_passagers} > ${CONFIG_PRICING.capacite_max}). ` +
-        "Escalade vers un commercial humain requise.",
+        "Escalade vers un commercial humain requise (flux manuel).",
     );
   }
   if (!Number.isFinite(distance_km) || distance_km <= 0) {
@@ -194,11 +233,10 @@ export function calculerDevis(params: ParamsDevis): ResultatDevis {
     );
   }
 
-  // --- 1. Base distance ---
-  const baseDistance = Math.max(
-    distance_km * CONFIG_PRICING.base.prix_km,
-    CONFIG_PRICING.base.prix_minimum,
-  );
+  // --- 1. Base de prix selon grille forfait + aller-retour ---
+  const baseSimple = baseTransfertSimple(distance_km);
+  const baseDistance =
+    type_trajet === "aller_retour" ? baseSimple * 2 : baseSimple;
 
   // --- 2. Coefficients (saison, urgence, capacité) appliqués à la base ---
   const coefficients: Coefficient[] = [
@@ -209,8 +247,13 @@ export function calculerDevis(params: ParamsDevis): ResultatDevis {
   const facteur = coefficients.reduce((acc, c) => acc * (1 + c.taux), 1);
   const baseAjustee = baseDistance * facteur;
 
+  const libelleBase =
+    type_trajet === "aller_retour"
+      ? "Transfert aller/retour (base forfait)"
+      : "Transfert simple (base forfait)";
+
   const lignes: LigneDevis[] = [
-    { libelle: "Transport (base distance)", montant: arrondi(baseDistance) },
+    { libelle: libelleBase, montant: arrondi(baseDistance) },
   ];
   for (const c of coefficients) {
     if (c.taux !== 0) {
@@ -252,7 +295,7 @@ export function calculerDevis(params: ParamsDevis): ResultatDevis {
     lignes.push({ libelle, montant: arrondi(montant) });
   }
 
-  // --- 4. Marge commerciale (+15 % avant envoi) ---
+  // --- 4. Marge commerciale (+15 %) ---
   const sousTotal = baseAjustee + totalOptions;
   const marge = sousTotal * CONFIG_PRICING.marge_commerciale;
   coefficients.push({

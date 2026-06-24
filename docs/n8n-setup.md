@@ -156,13 +156,27 @@ Une fois l'URL récupérée (étapes 1–6 ci-dessus), construire les nœuds sui
      les *Credentials* n8n, pas dans le repo.
    - **Input** : mapper l'historique `messages` reçu du webhook.
 
-**Node 3 — Tool `calculer_devis`** (peut être branché plus tard, Jour 3)
+**Node 3 — Tool `calculer_devis`** (✅ Option B retenue)
    - L'agent ne calcule JAMAIS le prix lui-même.
-   - Option A : node *Code* qui réimplémente la logique de
-     `src/tools/calculer-devis.ts`.
-   - Option B : un node *HTTP Request* qui appelle une route Next.js
-     `/api/devis` (à créer Jour 3) exposant `calculer_devis()`.
-   - Recommandé : Option B, pour garder une seule source de vérité du calcul.
+   - Le calcul est exposé via une **route Next.js** : `POST /api/devis`.
+   - Dans n8n, créer un nœud **HTTP Request** :
+     - Méthode : `POST`
+     - URL : `https://<ton-front-deployé>/api/devis` (ou `http://localhost:3000/api/devis` en dev)
+     - Body (JSON) :
+       ```json
+       {
+         "nb_passagers": 45,
+         "date_depart": "2026-07-14",
+         "date_demande": "2026-06-24",
+         "distance_km": 640,
+         "type_trajet": "aller_retour",
+         "options": [{ "type": "guide", "quantite": 1 }]
+       }
+       ```
+     - Réponse : `{ prix_ht, tva, prix_ttc, lignes, coefficients, devise }`
+   - L'agent passe ces paramètres dès qu'il a collecté les 4 champs requis
+     (départ, destination, dateDepart, nbPassagers) — la distance est calculée
+     via une API externe (Google Maps, OSRM…) ou estimée.
 
 **Node 4 — Respond to Webhook**
    - Construire le JSON de réponse au format du contrat ci-dessus
