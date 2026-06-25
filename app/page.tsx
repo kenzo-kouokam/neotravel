@@ -59,10 +59,10 @@ export default function Home() {
             Avis clients
           </a>
           <a
-            href="#"
+            href="/commercial"
             className="rounded-full border border-[color:var(--brand-clay)]/30 px-4 py-1.5 text-[color:var(--brand-clay)] hover:bg-[color:var(--brand-clay)]/5"
           >
-            Nous appeler
+            Espace commercial
           </a>
         </nav>
       </header>
