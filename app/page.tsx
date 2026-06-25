@@ -2,7 +2,7 @@ import Chatbot from "./components/Chatbot";
 
 export default function Home() {
   return (
-    <div className="hero-bg relative flex flex-1 flex-col overflow-hidden">
+    <div className="hero-bg relative flex flex-1 flex-col overflow-x-clip">
       {/* Décor géométrique fond */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         {/* Cercle ambre droit */}
@@ -48,14 +48,14 @@ export default function Home() {
             Neotravel
           </span>
         </div>
-        <nav className="hidden items-center gap-7 text-sm text-zinc-700 sm:flex">
-          <a href="#" className="hover:text-[color:var(--brand-clay)]">
+        <nav className="flex items-center gap-7 text-sm text-zinc-700">
+          <a href="#" className="hidden hover:text-[color:var(--brand-clay)] sm:block">
             Destinations
           </a>
-          <a href="#" className="hover:text-[color:var(--brand-clay)]">
+          <a href="#" className="hidden hover:text-[color:var(--brand-clay)] sm:block">
             Notre flotte
           </a>
-          <a href="#" className="hover:text-[color:var(--brand-clay)]">
+          <a href="#" className="hidden hover:text-[color:var(--brand-clay)] sm:block">
             Avis clients
           </a>
           <a
