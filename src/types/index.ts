@@ -31,11 +31,15 @@ export const CHAMPS_REQUIS: (keyof Lead)[] = [
   "nbPassagers",
 ];
 
-/** Corps de la requête envoyée à l'agent (proxy vers n8n). */
+/**
+ * Corps de la requête envoyée au proxy /api/chat puis à n8n.
+ * Contrat aligné sur le workflow n8n : { session_id, prompt }.
+ */
 export interface ChatRequest {
-  messages: ChatMessage[];
-  /** Lead partiel reconstruit côté client au fil de la conversation. */
-  lead?: Lead;
+  /** Identifiant stable de la conversation — n8n garde sa mémoire dessus. */
+  sessionId: string;
+  /** Dernier message de l'utilisateur. */
+  prompt: string;
 }
 
 /** Réponse de l'agent renvoyée au client. */

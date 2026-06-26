@@ -14,6 +14,12 @@ export default function Chatbot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  // Identifiant stable de la conversation — n8n garde sa mémoire dessus.
+  const sessionIdRef = useRef<string>(
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `sess_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+  );
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,7 +39,10 @@ export default function Chatbot() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: historique }),
+        body: JSON.stringify({
+          sessionId: sessionIdRef.current,
+          prompt: texte,
+        }),
       });
       const data = (await res.json()) as ChatResponse;
       setMessages((prev) => [
