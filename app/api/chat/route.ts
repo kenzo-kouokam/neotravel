@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const res = await fetch(webhookUrl, {
       method: "POST",
       headers,
-      body: JSON.stringify({ session_id: sessionId, prompt }),
+      body: JSON.stringify({ chatInput: prompt, sessionId }),
     });
 
     if (!res.ok) {
