@@ -1,12 +1,12 @@
 import type { NextRequest } from "next/server";
-import type { ChatRequest, ChatResponse } from "@/src/types";
+import type { ChatRequest } from "@/src/types";
 
 /**
  * Proxy entre le chatbot (front) et le workflow n8n AI Agent.
  *
- * Le front envoie l'historique de conversation ici ; on le transmet au webhook
- * n8n, qui exécute l'agent IA et renvoie la réponse. On garde l'URL et la clé
- * n8n côté serveur — elles ne sont jamais exposées au navigateur.
+ * Contrat avec n8n : on envoie { session_id, prompt }. n8n garde la mémoire
+ * de conversation par session_id ; on ne transmet donc que le dernier message.
+ * L'URL et la clé n8n restent côté serveur — jamais exposées au navigateur.
  */
 export async function POST(request: NextRequest) {
   const webhookUrl = process.env.N8N_WEBHOOK_URL;
@@ -25,12 +25,11 @@ export async function POST(request: NextRequest) {
     return Response.json({ reply: "Requête invalide." }, { status: 400 });
   }
 
-  if (!Array.isArray(body.messages) || body.messages.length === 0) {
-    return Response.json(
-      { reply: "Aucun message fourni." },
-      { status: 400 },
-    );
+  const prompt = body?.prompt?.trim();
+  if (!prompt) {
+    return Response.json({ reply: "Aucun message fourni." }, { status: 400 });
   }
+  const sessionId = body.sessionId || crypto.randomUUID();
 
   try {
     const headers: Record<string, string> = {
@@ -43,22 +42,58 @@ export async function POST(request: NextRequest) {
     const res = await fetch(webhookUrl, {
       method: "POST",
       headers,
-      body: JSON.stringify(body),
+      body: JSON.stringify({ session_id: sessionId, prompt }),
     });
 
     if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
       return Response.json(
-        { reply: "L'agent est momentanément indisponible. Réessayez." },
+        { reply: `[DEBUG ${res.status}] ${errBody || "pas de corps"}` },
         { status: 502 },
       );
     }
 
-    const data = (await res.json()) as ChatResponse;
-    return Response.json(data);
+    const data = await res.json().catch(() => null);
+    return Response.json({ reply: extraireReply(data) });
   } catch {
     return Response.json(
       { reply: "Impossible de joindre l'agent. Réessayez plus tard." },
       { status: 502 },
     );
   }
+}
+
+/**
+ * Extrait le texte de réponse de façon tolérante : n8n peut renvoyer une
+ * chaîne, un objet { reply | output | response | text | ... }, ou un tableau
+ * d'items (format "Respond to Webhook"). On cherche le premier champ texte.
+ */
+function extraireReply(data: unknown): string {
+  if (typeof data === "string" && data.trim()) return data;
+
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      const r = extraireReply(item);
+      if (r && !r.startsWith("Désolé")) return r;
+    }
+  }
+
+  if (data && typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    // n8n encapsule parfois la donnée dans { json: {...} }
+    if (obj.json) return extraireReply(obj.json);
+    for (const cle of [
+      "reply",
+      "output",
+      "response",
+      "text",
+      "message",
+      "answer",
+    ]) {
+      const v = obj[cle];
+      if (typeof v === "string" && v.trim()) return v;
+    }
+  }
+
+  return "Désolé, je n'ai pas pu interpréter la réponse de l'agent.";
 }
