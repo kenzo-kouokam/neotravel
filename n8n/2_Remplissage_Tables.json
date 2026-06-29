@@ -1,0 +1,1781 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"Nom_Client\": \"Jean Dupont\",\n  \"Email_Client\": \"jean.dupont@email.com\",\n  \"Numero_Tel\": \"0612345678\",\n  \"Ville_Depart\": \"Paris\",\n  \"Ville_Arrivee\": \"Lyon\",\n  \"Date_Depart\": \"2026-07-15\",\n  \"Date_Retour\": \"2026-07-22\",\n  \"Type_Trajet\": \"Aller-Retour\",\n  \"Nombre_Passagers\": 25,\n  \"Option_Guide\": \"Non\",\n  \"Statut\": \"Nouveau\",\n  \"Type_Intervention\": [\"Standard\"],\n  \"Contexte_Message\": \"Exemple de résumé de l'IA\",\n  \"Cle_Idempotence\": \"session_test_123\"\n}",
+        "returnOutput": "allRuns"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        144,
+        -528
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1264,
+        -432
+      ],
+      "id": "66b5edb5-6199-403b-b510-5727c8a4084d",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "url": "=https://api-adresse.data.gouv.fr/search/?q={{ encodeURIComponent($('When Executed by Another Workflow').item.json.Ville_Arrivee) }}&type=municipality&limit=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        816,
+        -336
+      ],
+      "id": "2f1e261a-e905-4cf8-ae54-51a518232339",
+      "name": "Geocoding_Arrivee",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "url": "=https://api-adresse.data.gouv.fr/search/?q={{ encodeURIComponent($('When Executed by Another Workflow').item.json.Ville_Depart) }}&type=municipality&limit=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        816,
+        -528
+      ],
+      "id": "7831c739-49f0-40fa-b145-b2fcaee4d5f4",
+      "name": "Geocoding_Depart",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cc9af4d8-6dc1-4ed4-bb9a-14b619db5802",
+              "name": "coordonnees_depart",
+              "value": "={{ $json.features[0].geometry.coordinates.join(',')",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        -528
+      ],
+      "id": "f8357b43-060e-40b1-ad62-e74eec7a9104",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "aa384762-55a0-4631-825a-74ebd400e222",
+              "name": "coordonnees_arrivee",
+              "value": "={{ $json.features[0].geometry.coordinates.join(',')",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        -336
+      ],
+      "id": "e5e8a632-7dfa-42ec-a89c-31e9eaa87aec",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appqJ7LO7TyFkLQ6h",
+          "mode": "list",
+          "cachedResultName": "NeoTravel V2 - Option A",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblIxlPvgHVdJ9LmR",
+          "mode": "list",
+          "cachedResultName": "Demandes_Schema",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h/tblIxlPvgHVdJ9LmR"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Nom_Client": "={{ $('When Executed by Another Workflow').item.json.Nom_Client }}",
+            "Email_Client": "={{ $('When Executed by Another Workflow').item.json.Email_Client }}",
+            "Numero_Tel": "={{ $('When Executed by Another Workflow').item.json.Numero_Tel }}",
+            "Type_Intervention_Humn": "={{ $('When Executed by Another Workflow').item.json.Type_Intervention }}",
+            "Nombre_Passagers": "={{ $('When Executed by Another Workflow').item.json.Nombre_Passagers }}",
+            "Distance_Saisie_M": "={{ $json.routes[0].legs[0].distance }}",
+            "Statut": "={{ $('When Executed by Another Workflow').item.json.Statut }}",
+            "Ville_Depart": "={{ $('When Executed by Another Workflow').item.json.Ville_Depart }}",
+            "Ville_Arrivee": "={{ $('When Executed by Another Workflow').item.json.Ville_Arrivee }}",
+            "Date_Depart": "={{ $('When Executed by Another Workflow').item.json.Date_Depart }}",
+            "Date_Retour": "={{ $('When Executed by Another Workflow').item.json.Date_Retour }}",
+            "Type_Trajet": "={{ $('When Executed by Another Workflow').item.json.Type_Trajet }}",
+            "Option_Guide": "={{ $('When Executed by Another Workflow').item.json.Option_Guide }}",
+            "Contexte_Message": "={{ $('When Executed by Another Workflow').item.json.Contexte_Message }}",
+            "Cle_Idempotence": "={{ $('When Executed by Another Workflow').item.json.Cle_Idempotence }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ID_Demande",
+              "displayName": "ID_Demande",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Nom_Client",
+              "displayName": "Nom_Client",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Client",
+              "displayName": "Email_Client",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Numero_Tel",
+              "displayName": "Numero_Tel",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Statut",
+              "displayName": "Statut",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Nouveau",
+                  "value": "Nouveau"
+                },
+                {
+                  "name": "Incomplet",
+                  "value": "Incomplet"
+                },
+                {
+                  "name": "Tarife",
+                  "value": "Tarife"
+                },
+                {
+                  "name": "Escalade",
+                  "value": "Escalade"
+                },
+                {
+                  "name": "Humain",
+                  "value": "Humain"
+                },
+                {
+                  "name": "Relance_1",
+                  "value": "Relance_1"
+                },
+                {
+                  "name": "Relance_2",
+                  "value": "Relance_2"
+                },
+                {
+                  "name": "Relance_3",
+                  "value": "Relance_3"
+                },
+                {
+                  "name": "Accepte",
+                  "value": "Accepte"
+                },
+                {
+                  "name": "Refuse",
+                  "value": "Refuse"
+                },
+                {
+                  "name": "Cloture",
+                  "value": "Cloture"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Type_Intervention_Humn",
+              "displayName": "Type_Intervention_Humn",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "options": [
+                {
+                  "name": "Urgence",
+                  "value": "Urgence"
+                },
+                {
+                  "name": "International",
+                  "value": "International"
+                },
+                {
+                  "name": "Hors_Zone",
+                  "value": "Hors_Zone"
+                },
+                {
+                  "name": "Standard",
+                  "value": "Standard"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Ville_Depart",
+              "displayName": "Ville_Depart",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Ville_Arrivee",
+              "displayName": "Ville_Arrivee",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date_Depart",
+              "displayName": "Date_Depart",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date_Retour",
+              "displayName": "Date_Retour",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Type_Trajet",
+              "displayName": "Type_Trajet",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Aller-Simple",
+                  "value": "Aller-Simple"
+                },
+                {
+                  "name": "Aller-Retour",
+                  "value": "Aller-Retour"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Nombre_Passagers",
+              "displayName": "Nombre_Passagers",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Distance_Saisie_M",
+              "displayName": "Distance_Saisie_M",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Option_Guide",
+              "displayName": "Option_Guide",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "true",
+                  "value": "true"
+                },
+                {
+                  "name": "false",
+                  "value": "false"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date_Creation",
+              "displayName": "Date_Creation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Cle_Idempotence",
+              "displayName": "Cle_Idempotence",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Contexte_Message",
+              "displayName": "Contexte_Message",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Devis_Schema",
+              "displayName": "Devis_Schema",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Relances_Schema",
+              "displayName": "Relances_Schema",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Logs_Observabilite",
+              "displayName": "Logs_Observabilite",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Prix_Total_TTC",
+              "displayName": "Prix_Total_TTC",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "URL_Devis_PDF",
+              "displayName": "URL_Devis_PDF",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1712,
+        -432
+      ],
+      "id": "3bdd4f40-1108-47f2-8c2c-f21251941b7f",
+      "name": "Rec_Schema_Demande",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "dlOspPYGINM1Oosb",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appqJ7LO7TyFkLQ6h",
+          "mode": "list",
+          "cachedResultName": "NeoTravel V2 - Option A",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblPu3TJcRPJB04cC",
+          "mode": "list",
+          "cachedResultName": "Logs_Observabilite",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h/tblPu3TJcRPJB04cC"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Demande_Associee": "={{ [ $('Rec_Schema_Demande').item.json.id ] }}",
+            "Tokens_Out": 400,
+            "Cout_Estime_Inference": 0,
+            "Duree_Execution_MS": 1240,
+            "Tokens_In": 2500
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ID_Log",
+              "displayName": "ID_Log",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Demande_Associee",
+              "displayName": "Demande_Associee",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Etape_Workflow",
+              "displayName": "Etape_Workflow",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Webhook_Reception",
+                  "value": "Webhook_Reception"
+                },
+                {
+                  "name": "IA_Extraction",
+                  "value": "IA_Extraction"
+                },
+                {
+                  "name": "Code_Calcul",
+                  "value": "Code_Calcul"
+                },
+                {
+                  "name": "Generateur_PDF",
+                  "value": "Generateur_PDF"
+                },
+                {
+                  "name": "Erreur_Systeme",
+                  "value": "Erreur_Systeme"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Tokens_In",
+              "displayName": "Tokens_In",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Tokens_Out",
+              "displayName": "Tokens_Out",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Cout_Estime_Inference",
+              "displayName": "Cout_Estime_Inference",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Duree_Execution_MS",
+              "displayName": "Duree_Execution_MS",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Statut_Execution",
+              "displayName": "Statut_Execution",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Succes",
+                  "value": "Succes"
+                },
+                {
+                  "name": "Echec_Parsing",
+                  "value": "Echec_Parsing"
+                },
+                {
+                  "name": "Timeout",
+                  "value": "Timeout"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Message_Erreur",
+              "displayName": "Message_Erreur",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1936,
+        -432
+      ],
+      "id": "16f29e0e-1357-4f96-be43-e7bbaea108e9",
+      "name": "Rec_Logs_Observabilite",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "dlOspPYGINM1Oosb",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://router.project-osrm.org/route/v1/driving/{{$json.coordonnees_depart}};{{$json.coordonnees_arrivee}}?overview=false",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1488,
+        -432
+      ],
+      "id": "5f4d1682-ac22-4742-ab04-a42a63153f1e",
+      "name": "Calcul_Distane_Metre",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appqJ7LO7TyFkLQ6h",
+          "mode": "list",
+          "cachedResultName": "NeoTravel V2 - Option A",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblIxlPvgHVdJ9LmR",
+          "mode": "list",
+          "cachedResultName": "Demandes_Schema",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h/tblIxlPvgHVdJ9LmR"
+        },
+        "filterByFormula": "={Cle_Idempotence} = '{{ $json.Cle_Idempotence }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        -528
+      ],
+      "id": "b328c8f6-dda9-4a90-bfd9-e2a9d5f48df6",
+      "name": "Search records",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "dlOspPYGINM1Oosb",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7453d6db-45ee-4403-84f7-19a60b7e6b71",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        592,
+        -528
+      ],
+      "id": "07fa428f-c47c-41c9-acf5-42b0c5677b30",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        816,
+        -720
+      ],
+      "id": "4692e8ac-2bd6-4a43-86a5-c9740331d090",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "30580ec5-bd53-46ad-aa0b-1052e528d5d9",
+              "leftValue": "={{ $('When Executed by Another Workflow').item.json.Statut }}",
+              "rightValue": "Nouveau",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2160,
+        -432
+      ],
+      "id": "62a35980-b89a-45b9-9502-7ec39a16c8e3",
+      "name": "Aiguillage_Statut"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appqJ7LO7TyFkLQ6h",
+          "mode": "list",
+          "cachedResultName": "NeoTravel V2 - Option A",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl7nLUUXxvPKOxXe",
+          "mode": "list",
+          "cachedResultName": "Parametres_Globaux",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h/tbl7nLUUXxvPKOxXe"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2384,
+        -528
+      ],
+      "id": "f537f0c7-a408-402c-b40c-fe1a422bc59b",
+      "name": "Parametres_Globaux1",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "dlOspPYGINM1Oosb",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appqJ7LO7TyFkLQ6h",
+          "mode": "list",
+          "cachedResultName": "NeoTravel V2 - Option A",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblR3GEeeY0xy42Bs",
+          "mode": "list",
+          "cachedResultName": "Matrices",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h/tblR3GEeeY0xy42Bs"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2608,
+        -528
+      ],
+      "id": "2e50a10f-93e1-4de9-8d37-956ac0d06c11",
+      "name": "Matrices",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "dlOspPYGINM1Oosb",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appqJ7LO7TyFkLQ6h",
+          "mode": "list",
+          "cachedResultName": "NeoTravel V2 - Option A",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblsdHbDtjTU1vcHG",
+          "mode": "list",
+          "cachedResultName": "Forfaits_KM",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h/tblsdHbDtjTU1vcHG"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2832,
+        -528
+      ],
+      "id": "a2dc1008-1300-4e98-87ad-80d9aa0c2860",
+      "name": "Forfaits_KM",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "dlOspPYGINM1Oosb",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==========================================\n// 1. RÉCUPÉRATION DES DONNÉES\n// ==========================================\nconst clientData = $('When Executed by Another Workflow').item.json || {};\nconst params = $('Parametres_Globaux1').item.json.fields || {};\n\nconst matricesItems = $('Matrices').all() || [];\nconst matrices = matricesItems.map(item => item.json.fields || {});\n\nconst forfaitsItems = $('Forfaits_KM').all() || [];\nconst forfaits = forfaitsItems.map(item => item.json.fields || {}); \n\n// Date pivot pour tester l'anticipation (gérée dynamiquement)\nconst today = params.TODAY ? new Date(params.TODAY) : new Date();\n\n// ==========================================\n// 2. LE MOTEUR D'ANALYSE D'INTERVALLES\n// ==========================================\nfunction verifierCondition(valeur, conditionStr) {\n    if (!conditionStr) return false;\n    conditionStr = String(conditionStr).trim();\n    if (conditionStr.startsWith('<=')) return valeur <= parseFloat(conditionStr.replace('<=', ''));\n    if (conditionStr.startsWith('<')) return valeur < parseFloat(conditionStr.replace('<', ''));\n    if (conditionStr.startsWith('>=')) return valeur >= parseFloat(conditionStr.replace('>=', ''));\n    if (conditionStr.startsWith('>')) return valeur > parseFloat(conditionStr.replace('>', ''));\n    return false;\n}\n\nfunction matchPalier(valeur, regleAirtable) {\n    if (!regleAirtable) return false;\n    const parties = String(regleAirtable).split(' et ').map(s => s.trim());\n    if (parties.length === 2) {\n        return verifierCondition(valeur, parties[0]) && verifierCondition(valeur, parties[1]);\n    }\n    return verifierCondition(valeur, regleAirtable);\n}\n\n// ==========================================\n// 3. ANALYSE DU TRAJET ET DES DATES\n// ==========================================\nconst distSource = $('Calcul_Distane_Metre').item.json;\nlet distMetres = 0;\nif (distSource && distSource.routes && distSource.routes[0] && distSource.routes[0].legs[0]) {\n    distMetres = distSource.routes[0].legs[0].distance;\n}\nlet distanceUnTrajetKm = distMetres / 1000;\n\nlet multiplicateurTrajet = (clientData.Type_Trajet === \"Aller-Retour\") ? 2 : 1;\nlet distanceTotaleKm = distanceUnTrajetKm * multiplicateurTrajet;\n\nlet nbNuits = 0, nbJours = 1;\nif (clientData.Date_Depart && clientData.Date_Retour) {\n    const d1 = new Date(clientData.Date_Depart);\n    const d2 = new Date(clientData.Date_Retour);\n    const diffDays = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));\n    if (diffDays > 0) {\n        nbNuits = diffDays;\n        nbJours = diffDays + 1;\n    }\n}\n\n// ==========================================\n// 4. IDENTIFICATION DES COEFFICIENTS (MATRICES)\n// ==========================================\nconst pax = clientData.Nombre_Passagers || 0;\nconst matCapacite = matrices.find(m => m.Type_Critere === 'Capacite' && matchPalier(pax, m.Valeur_Cle));\nconst coefCapacite = matCapacite ? Number(matCapacite.Coefficient) : 0;\nconst idCapacite = matCapacite ? matCapacite.ID_Critere : \"AUCUN\";\n\nconst dDepart = new Date(clientData.Date_Depart);\nconst joursAnticipation = Math.floor((dDepart - today) / (1000 * 60 * 60 * 24));\nconst matAnticipation = matrices.find(m => m.Type_Critere === 'Anticipation' && matchPalier(joursAnticipation, m.Valeur_Cle));\nconst coefAnticipation = matAnticipation ? Number(matAnticipation.Coefficient) : 0;\nconst idAnticipation = matAnticipation ? matAnticipation.ID_Critere : \"AUCUN\";\n\nconst moisNoms = [\"janvier\", \"fevrier\", \"mars\", \"avril\", \"mai\", \"juin\", \"juillet\", \"aout\", \"septembre\", \"octobre\", \"novembre\", \"decembre\"];\nconst moisDepart = (dDepart && !isNaN(dDepart)) ? moisNoms[dDepart.getMonth()] : \"inconnu\";\nconst matSaison = matrices.find(m => m.Type_Critere === 'Saisonnalite' && String(m.Valeur_Cle).toLowerCase().includes(moisDepart));\nconst coefSaison = matSaison ? Number(matSaison.Coefficient) : 0;\nconst idSaison = matSaison ? matSaison.ID_Critere : \"AUCUN\";\n\nconst coefGlobalMatrices = coefCapacite + coefAnticipation + coefSaison;\n\n// ==========================================\n// 5. CALCUL DES COÛTS SECS (PARAMÈTRES DYNAMIQUES)\n// ==========================================\nlet coutTransportSec = 0;\nlet detailsForfait = \"\";\n\n// Variables strictement issues de Airtable\nconst SEUIL = Number(params.SEUIL_DIST_FORFAIT);\nconst prixKmHorsForfait = Number(params.PRIX_KM_HORS_FORFAIT);\n\nif (distanceTotaleKm > 0 && distanceTotaleKm <= SEUIL) {\n    const forfaitTrouve = forfaits.find(f => matchPalier(distanceTotaleKm, f.Palier_KM));\n\n    if (forfaitTrouve && forfaitTrouve.Tarif_Forfait_HT) {\n        coutTransportSec = Number(forfaitTrouve.Tarif_Forfait_HT);\n        detailsForfait = `Forfait appliqué: Règle [ ${forfaitTrouve.Palier_KM} ] (pour ${distanceTotaleKm.toFixed(2)} km réels)`;\n    } else {\n        coutTransportSec = distanceTotaleKm * prixKmHorsForfait;\n        detailsForfait = `Erreur: Aucun palier valide pour ${distanceTotaleKm.toFixed(2)} km - Tarif au KM réel activé`;\n    }\n} else {\n    coutTransportSec = distanceTotaleKm * prixKmHorsForfait;\n    detailsForfait = `Tarif au KM réel activé (${distanceTotaleKm.toFixed(2)} km > ${SEUIL} km)`;\n}\n\nconst prixNuitChauffeur = Number(params.PRIX_NUIT_CHAUFFEUR);\nconst prixGuideJour = Number(params.PRIX_GUIDE_JOUR);\n\nlet coutNuites = nbNuits * prixNuitChauffeur;\nlet coutGuide = (clientData.Option_Guide === \"Oui\" || clientData.Option_Guide === \"true\" || clientData.Option_Guide === true) ? nbJours * prixGuideJour : 0;\n\nlet sousTotalBrut = coutTransportSec + coutNuites + coutGuide;\n\n// ==========================================\n// 6. APPLICATION FINALE (MARGE & TVA DYNAMIQUES)\n// ==========================================\nlet coutApresMatrices = sousTotalBrut * (1 + coefGlobalMatrices);\n\nconst margeCommerciale = Number(params.MARGE_COMMERCIALE);\nlet prixDeVenteHT = coutApresMatrices / (1 - margeCommerciale);\n\nconst tva = Number(params.TVA_TRANSPORT);\nlet prixDeVenteTTC = prixDeVenteHT * (1 + tva);\nlet montantTVA = prixDeVenteTTC - prixDeVenteHT;\n\n// ==========================================\n// 7. RENDU FINAL\n// ==========================================\nreturn {\n    json: {\n        ...clientData,\n        Prix_HT: (Math.round(prixDeVenteHT * 100) / 100).toFixed(2),\n        Prix_TTC: (Math.round(prixDeVenteTTC * 100) / 100).toFixed(2),\n        Distance_Totale_KM: distanceTotaleKm.toFixed(2),\n        \n        Details_Calcul: {\n            Type_Tarification: detailsForfait,\n            Base_Trajet: {\n                Aller_Simple_KM: distanceUnTrajetKm.toFixed(2),\n                Distance_Facturee_KM: distanceTotaleKm.toFixed(2)\n            },\n            Planning: {\n                Jours_Mobilises: nbJours,\n                Nuits_Chauffeur: nbNuits\n            },\n            Matrices_Appliquees: {\n                Capacite: { Règle: idCapacite, Valeur: pax + \" pax\", Coef: (coefCapacite * 100) + \"%\" },\n                Saisonnalite: { Règle: idSaison, Valeur: \"Mois de \" + moisDepart, Coef: (coefSaison * 100) + \"%\" },\n                Anticipation: { Règle: idAnticipation, Valeur: joursAnticipation + \" jours\", Coef: (coefAnticipation * 100) + \"%\" },\n                Impact_Total_Coef: (coefGlobalMatrices * 100) + \"%\"\n            },\n            Couts_Transparents: {\n                Transport_Sec: coutTransportSec.toFixed(2) + \" €\",\n                Frais_Nuites: coutNuites.toFixed(2) + \" €\",\n                Frais_Guide: coutGuide.toFixed(2) + \" €\",\n                Sous_Total_Avant_Coef: sousTotalBrut.toFixed(2) + \" €\",\n                Cout_Revient_Apres_Coef: coutApresMatrices.toFixed(2) + \" €\"\n            },\n            Taxes_Et_Marge: {\n                Marge_Commerciale: (margeCommerciale * 100) + \"%\",\n                Montant_Marge: (prixDeVenteHT - coutApresMatrices).toFixed(2) + \" €\",\n                TVA_Appliquee: (tva * 100) + \"%\",\n                Montant_TVA: montantTVA.toFixed(2) + \" €\"\n            }\n        }\n    }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3056,
+        -528
+      ],
+      "id": "b36d1a3a-495b-4be0-8fb8-2a3c0b3e1830",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2384,
+        -336
+      ],
+      "id": "f8cd64a8-47a2-456c-a3dc-56f3e540b44b",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appqJ7LO7TyFkLQ6h",
+          "mode": "list",
+          "cachedResultName": "NeoTravel V2 - Option A",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl3GuInzlUgtA7PK",
+          "mode": "list",
+          "cachedResultName": "Devis_Schema",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h/tbl3GuInzlUgtA7PK"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Demande_Associee": "={{ [ $('Rec_Schema_Demande').item.json.id ] }}",
+            "Prix_Total_HT": "={{ parseFloat($json.Prix_HT) }}",
+            "Prix_Total_TTC": "={{ parseFloat($json.Prix_TTC) }}",
+            "TVA_Calculer": "={{ parseFloat($json.Details_Calcul.Taxes_Et_Marge.Montant_TVA) }}",
+            "Marge_Commerciale_HT": "={{ parseFloat($json.Details_Calcul.Taxes_Et_Marge.Montant_Marge) }} ",
+            "Frais_Nuite": "={{ parseFloat($json.Details_Calcul.Couts_Transparents.Frais_Nuites) }}",
+            "Frais_Guide": "={{ parseFloat($json.Details_Calcul.Couts_Transparents.Frais_Guide) }}",
+            "Coef_Capacite_Applique": "={{ parseFloat($json.Details_Calcul.Matrices_Appliquees.Capacite.Coef) / 100 }}",
+            "Coef_Saison_Applique": "={{ parseFloat($json.Details_Calcul.Matrices_Appliquees.Saisonnalite.Coef) / 100 }}",
+            "Coef_Anticipation_Applique": "={{ parseFloat($json.Details_Calcul.Matrices_Appliquees.Anticipation.Coef) / 100 }}",
+            "Prix_HT_Brut_KM": "={{ parseFloat($json.Details_Calcul.Couts_Transparents.Transport_Sec) }}",
+            "Distance_Km": "={{ parseFloat($json.Distance_Totale_KM) }}",
+            "Validation_Humain": "En_Attente"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ID_Devis",
+              "displayName": "ID_Devis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Demande_Associee",
+              "displayName": "Demande_Associee",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Validation_Humain",
+              "displayName": "Validation_Humain",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "En_Attente",
+                  "value": "En_Attente"
+                },
+                {
+                  "name": "Valider_Pour_Envoi",
+                  "value": "Valider_Pour_Envoi"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Distance_Km",
+              "displayName": "Distance_Km",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Prix_HT_Brut_KM",
+              "displayName": "Prix_HT_Brut_KM",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Coef_Saison_Applique",
+              "displayName": "Coef_Saison_Applique",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Coef_Anticipation_Applique",
+              "displayName": "Coef_Anticipation_Applique",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Coef_Capacite_Applique",
+              "displayName": "Coef_Capacite_Applique",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Frais_Guide",
+              "displayName": "Frais_Guide",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Frais_Nuite",
+              "displayName": "Frais_Nuite",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Prix_Total_HT",
+              "displayName": "Prix_Total_HT",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Marge_Commerciale_HT",
+              "displayName": "Marge_Commerciale_HT",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "TVA_Calculer",
+              "displayName": "TVA_Calculer",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Prix_Total_TTC",
+              "displayName": "Prix_Total_TTC",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Date_Envoi_Effectif",
+              "displayName": "Date_Envoi_Effectif",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "URL_Devis_PDF",
+              "displayName": "URL_Devis_PDF",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        3280,
+        -528
+      ],
+      "id": "dfd020ff-dcca-4401-90e0-c325594e0ca1",
+      "name": "Rec_Devis",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "dlOspPYGINM1Oosb",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appqJ7LO7TyFkLQ6h",
+          "mode": "list",
+          "cachedResultName": "NeoTravel V2 - Option A",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblIxlPvgHVdJ9LmR",
+          "mode": "list",
+          "cachedResultName": "Demandes_Schema",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h/tblIxlPvgHVdJ9LmR"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Statut": "Devis_Ok",
+            "id": "={{ $('Rec_Schema_Demande').item.json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "ID_Demande",
+              "displayName": "ID_Demande",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Date_Creation",
+              "displayName": "Date_Creation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Nom_Client",
+              "displayName": "Nom_Client",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Email_Client",
+              "displayName": "Email_Client",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Numero_Tel",
+              "displayName": "Numero_Tel",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Statut",
+              "displayName": "Statut",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Nouveau",
+                  "value": "Nouveau"
+                },
+                {
+                  "name": "Devis_Ok",
+                  "value": "Devis_Ok"
+                },
+                {
+                  "name": "Humain",
+                  "value": "Humain"
+                },
+                {
+                  "name": "Relance_1",
+                  "value": "Relance_1"
+                },
+                {
+                  "name": "Relance_2",
+                  "value": "Relance_2"
+                },
+                {
+                  "name": "Relance_3",
+                  "value": "Relance_3"
+                },
+                {
+                  "name": "Accepte",
+                  "value": "Accepte"
+                },
+                {
+                  "name": "Refuse",
+                  "value": "Refuse"
+                },
+                {
+                  "name": "Cloture",
+                  "value": "Cloture"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Type_Intervention_Humn",
+              "displayName": "Type_Intervention_Humn",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "options": [
+                {
+                  "name": "Urgence",
+                  "value": "Urgence"
+                },
+                {
+                  "name": "International",
+                  "value": "International"
+                },
+                {
+                  "name": "Hors-Capacite",
+                  "value": "Hors-Capacite"
+                },
+                {
+                  "name": "Standard",
+                  "value": "Standard"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Type_Trajet",
+              "displayName": "Type_Trajet",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Aller-Simple",
+                  "value": "Aller-Simple"
+                },
+                {
+                  "name": "Aller-Retour",
+                  "value": "Aller-Retour"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Ville_Depart",
+              "displayName": "Ville_Depart",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Ville_Arrivee",
+              "displayName": "Ville_Arrivee",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Distance_Saisie_M",
+              "displayName": "Distance_Saisie_M",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date_Depart",
+              "displayName": "Date_Depart",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date_Retour",
+              "displayName": "Date_Retour",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Nombre_Passagers",
+              "displayName": "Nombre_Passagers",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Option_Guide",
+              "displayName": "Option_Guide",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Oui",
+                  "value": "Oui"
+                },
+                {
+                  "name": "Non",
+                  "value": "Non"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Contexte_Message",
+              "displayName": "Contexte_Message",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Cle_Idempotence",
+              "displayName": "Cle_Idempotence",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Devis_Schema",
+              "displayName": "Devis_Schema",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Relances_Schema",
+              "displayName": "Relances_Schema",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Logs_Observabilite",
+              "displayName": "Logs_Observabilite",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Prix_Total_TTC",
+              "displayName": "Prix_Total_TTC",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "URL_Devis_PDF",
+              "displayName": "URL_Devis_PDF",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        3504,
+        -528
+      ],
+      "id": "de038202-a388-49b9-98da-7b5e4f6eae59",
+      "name": "Update_Statut_Demandes",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "dlOspPYGINM1Oosb",
+          "name": "Airtable account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Calcul_Distane_Metre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geocoding_Arrivee": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geocoding_Depart": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Rec_Schema_Demande": {
+      "main": [
+        [
+          {
+            "node": "Rec_Logs_Observabilite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rec_Logs_Observabilite": {
+      "main": [
+        [
+          {
+            "node": "Aiguillage_Statut",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcul_Distane_Metre": {
+      "main": [
+        [
+          {
+            "node": "Rec_Schema_Demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Geocoding_Depart",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Geocoding_Arrivee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aiguillage_Statut": {
+      "main": [
+        [
+          {
+            "node": "Parametres_Globaux1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parametres_Globaux1": {
+      "main": [
+        [
+          {
+            "node": "Matrices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Matrices": {
+      "main": [
+        [
+          {
+            "node": "Forfaits_KM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forfaits_KM": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Rec_Devis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rec_Devis": {
+      "main": [
+        [
+          {
+            "node": "Update_Statut_Demandes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ec94c016adc5de47fd4fbf16669656bd7ed30cbdfd9303a21104c07c79b6e458"
+  }
+}
