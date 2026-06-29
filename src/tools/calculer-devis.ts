@@ -2,319 +2,314 @@
  * calculer_devis() — Moteur de tarification déterministe de Neotravel.
  *
  * RÈGLE D'OR : ce module ne fait JAMAIS appel à un LLM. Le prix est calculé
- * de manière déterministe, documentée et auditable à partir des règles
- * officielles "REGLES DE CALCUL COTATION DEVIS NEOTRAVEL".
+ * de manière déterministe à partir des règles officielles Neotravel.
  *
- * Source des matrices :
- *   - PDF "REGLES DE CALCUL COTATION DEVIS NEOTRAVEL" (grille forfait, A/R,
- *     coefficients, marge).
- *   - Brief général Neotravel (TVA 10 %, options guide/nuit chauffeur/péages).
+ * Port TypeScript fidèle du moteur n8n (Code node) qui fait foi côté production.
+ * Toutes les valeurs tarifaires (grille, coefficients, seuils) viennent d'Airtable :
+ *   - Parametres_Globaux  → `params`
+ *   - Matrices            → `matrices` (Capacite / Anticipation / Saisonnalite)
+ *   - Forfaits_KM         → `forfaits`
+ * En l'absence de config injectée, on utilise CONFIG_PRICING (miroir d'Airtable).
  */
 
 // ──────────────────────────────────────────────────────────────────────────
 // Types
 // ──────────────────────────────────────────────────────────────────────────
 
-export type TypeTrajet = "simple" | "aller_retour";
+export type TypeTrajet = "Aller-Simple" | "Aller-Retour";
+export type TypeCritere = "Capacite" | "Anticipation" | "Saisonnalite";
 
-export type TypeOption =
-  | "guide" // accompagnateur — +80 €/jour
-  | "nuit_chauffeur" // +120 €/nuit
-  | "peages"; // forfait selon trajet (montant fourni)
-
-export interface Option {
-  type: TypeOption;
-  /** Nombre de jours (guide) ou de nuits (nuit_chauffeur). Défaut : 1. */
-  quantite?: number;
-  /** Montant forfaitaire en €, requis pour `peages`. */
-  montant?: number;
+/** Une ligne de la table Matrices (Airtable). */
+export interface Matrice {
+  ID_Critere: string;
+  Type_Critere: TypeCritere;
+  /** Règle d'intervalle ("<=2", ">19 et <=53") ou liste de mois pour la saison. */
+  Valeur_Cle: string;
+  /** Coefficient en fraction (0.15 = +15 %). */
+  Coefficient: number;
 }
 
+/** Une ligne de la table Forfaits_KM (Airtable). */
+export interface Forfait {
+  /** Règle d'intervalle de distance ("<=30", ">110 et <=120"). */
+  Palier_KM: string;
+  Tarif_Forfait_HT: number;
+}
+
+/** Paramètres globaux (table Parametres_Globaux). */
+export interface ParametresGlobaux {
+  SEUIL_DIST_FORFAIT: number;
+  PRIX_KM_HORS_FORFAIT: number;
+  PRIX_NUIT_CHAUFFEUR: number;
+  PRIX_GUIDE_JOUR: number;
+  /** Marge commerciale en fraction (0.15 = 15 %). */
+  MARGE_COMMERCIALE: number;
+  /** TVA en fraction (0.10 = 10 %). */
+  TVA_TRANSPORT: number;
+  /** Date pivot pour l'anticipation (ISO). Défaut : aujourd'hui. */
+  TODAY?: string;
+}
+
+export interface ConfigPricing {
+  params: ParametresGlobaux;
+  matrices: Matrice[];
+  forfaits: Forfait[];
+}
+
+/** Entrée de calcul (champs de la demande client). */
 export interface ParamsDevis {
   nb_passagers: number;
-  /** Date de départ (ISO 8601, ex. "2026-07-14"). */
+  /** Distance d'un aller, en mètres (sortie du nœud de routing). */
+  distance_metres: number;
+  /** Date de départ (ISO). */
   date_depart: string;
-  /** Date de la demande (ISO 8601). Défaut : aujourd'hui. */
-  date_demande?: string;
-  distance_km: number;
-  /** "simple" (aller seul) ou "aller_retour". Défaut : "simple". */
+  /** Date de retour (ISO) — déclenche les nuits chauffeur si présente. */
+  date_retour?: string;
   type_trajet?: TypeTrajet;
-  options?: Option[];
-}
-
-export interface LigneDevis {
-  libelle: string;
-  montant: number;
-}
-
-export interface Coefficient {
-  libelle: string;
-  /** Coefficient appliqué, ex. 0.15 pour +15 %. */
-  taux: number;
+  option_guide?: boolean;
+  /** Surcharge la date pivot d'anticipation (sinon params.TODAY puis maintenant). */
+  date_reference?: string;
 }
 
 export interface ResultatDevis {
   prix_ht: number;
-  tva: number;
   prix_ttc: number;
-  lignes: LigneDevis[];
-  coefficients: Coefficient[];
+  tva: number;
+  distance_totale_km: number;
   devise: "EUR";
+  details: {
+    type_tarification: string;
+    aller_simple_km: number;
+    distance_facturee_km: number;
+    jours_mobilises: number;
+    nuits_chauffeur: number;
+    matrices: {
+      capacite: { regle: string; coef: number };
+      saisonnalite: { regle: string; coef: number };
+      anticipation: { regle: string; coef: number };
+      impact_total_coef: number;
+    };
+    couts: {
+      transport_sec: number;
+      frais_nuites: number;
+      frais_guide: number;
+      sous_total_avant_coef: number;
+      cout_revient_apres_coef: number;
+    };
+    taxes_et_marge: {
+      marge_commerciale: number;
+      montant_marge: number;
+      tva_appliquee: number;
+      montant_tva: number;
+    };
+  };
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// Configuration des matrices tarifaires (auditable / modifiable)
+// Moteur d'analyse d'intervalles (port fidèle du Code node n8n)
 // ──────────────────────────────────────────────────────────────────────────
 
-export const CONFIG_PRICING = {
-  /**
-   * Grille de tarif au forfait (transfert simple) jusqu'à 180 km.
-   * Clé = palier KM (arrondi supérieur à la dizaine), valeur = prix forfait en €.
-   * Source : PDF officiel "REGLES DE CALCUL COTATION DEVIS NEOTRAVEL".
-   */
-  grille_forfait_km: {
-    10: 250,
-    20: 250,
-    30: 250,
-    40: 320,
-    50: 350,
-    60: 390,
-    70: 430,
-    80: 500,
-    90: 540,
-    100: 580,
-    110: 620,
-    120: 660,
-    130: 700,
-    140: 740,
-    150: 780,
-    160: 820,
-    170: 860,
-    180: 900,
-  } as Record<number, number>,
-
-  /** Au-delà de 180 km (transfert simple) : (KM × 2) × 2,5 €/km = 5 €/km. */
-  prix_km_au_dela: 5,
-  seuil_forfait_km: 180,
-
-  /** Tableau 2a — Saisonnalité, par mois de départ (1 = janvier). */
-  saisonnalite: {
-    1: { libelle: "Basse", taux: -0.07 },
-    2: { libelle: "Basse", taux: -0.07 },
-    8: { libelle: "Basse", taux: -0.07 },
-    11: { libelle: "Basse", taux: -0.07 },
-    9: { libelle: "Moyenne", taux: 0 },
-    10: { libelle: "Moyenne", taux: 0 },
-    12: { libelle: "Moyenne", taux: 0 },
-    3: { libelle: "Haute", taux: 0.1 },
-    4: { libelle: "Haute", taux: 0.1 },
-    7: { libelle: "Haute", taux: 0.1 },
-    5: { libelle: "Très haute", taux: 0.15 },
-    6: { libelle: "Très haute", taux: 0.15 },
-  } as Record<number, { libelle: string; taux: number }>,
-
-  /**
-   * Tableau 2b — Urgence (date demande vs date départ).
-   * Les SEUILS EN JOURS ne sont pas dans le PDF officiel — hypothèses à
-   * confirmer avec Neotravel. Les taux, eux, sont conformes au PDF.
-   */
-  urgence: {
-    prioritaire: { seuil_max_jours: 7, libelle: "DD_PRIORITAIRE", taux: 0.1 },
-    urgent: { seuil_max_jours: 30, libelle: "DD_URGENT", taux: 0.05 },
-    normal: { seuil_max_jours: 90, libelle: "DD_NORMAL", taux: -0.05 },
-    anticipe: { libelle: "DD_3MOISETPLUS", taux: -0.1 },
-  },
-
-  /** Tableau 2c — Capacité, par tranche de passagers. */
-  capacite: [
-    { max: 19, libelle: "≤ 19 passagers", taux: -0.05 },
-    { max: 53, libelle: "20–53 passagers", taux: 0 },
-    { max: 63, libelle: "54–63 passagers", taux: 0.15 },
-    { max: 67, libelle: "64–67 passagers", taux: 0.2 },
-    { max: 85, libelle: "68–85 passagers", taux: 0.4 },
-  ],
-  capacite_max: 85,
-
-  /** Options (brief général Neotravel). */
-  options: {
-    guide: 80, // €/jour
-    nuit_chauffeur: 120, // €/nuit
-  },
-  tva: 0.1, // 10 %
-  marge_commerciale: 0.15, // +15 % appliqués avant envoi
-} as const;
-
-// ──────────────────────────────────────────────────────────────────────────
-// Helpers déterministes
-// ──────────────────────────────────────────────────────────────────────────
-
-/** Arrondi monétaire à 2 décimales, stable. */
-function arrondi(montant: number): number {
-  return Math.round((montant + Number.EPSILON) * 100) / 100;
+function verifierCondition(valeur: number, conditionStr: string): boolean {
+  if (!conditionStr) return false;
+  conditionStr = String(conditionStr).trim();
+  if (conditionStr.startsWith("<=")) return valeur <= parseFloat(conditionStr.replace("<=", ""));
+  if (conditionStr.startsWith("<")) return valeur < parseFloat(conditionStr.replace("<", ""));
+  if (conditionStr.startsWith(">=")) return valeur >= parseFloat(conditionStr.replace(">=", ""));
+  if (conditionStr.startsWith(">")) return valeur > parseFloat(conditionStr.replace(">", ""));
+  return false;
 }
 
-/**
- * Retourne la base de prix selon la grille forfaitaire (≤ 180 km) ou la
- * formule linéaire au-delà. Le palier KM est arrondi à la dizaine supérieure
- * (ex. 45 km → palier 50 km).
- */
-function baseTransfertSimple(distance_km: number): number {
-  if (distance_km <= CONFIG_PRICING.seuil_forfait_km) {
-    const palier = Math.max(10, Math.ceil(distance_km / 10) * 10);
-    return CONFIG_PRICING.grille_forfait_km[palier];
+function matchPalier(valeur: number, regleAirtable: string): boolean {
+  if (!regleAirtable) return false;
+  const parties = String(regleAirtable).split(" et ").map((s) => s.trim());
+  if (parties.length === 2) {
+    return verifierCondition(valeur, parties[0]) && verifierCondition(valeur, parties[1]);
   }
-  return distance_km * CONFIG_PRICING.prix_km_au_dela;
+  return verifierCondition(valeur, regleAirtable);
 }
 
-function coefficientSaison(dateDepart: Date): Coefficient {
-  const mois = dateDepart.getUTCMonth() + 1;
-  const s = CONFIG_PRICING.saisonnalite[mois];
-  return { libelle: `Saison ${s.libelle}`, taux: s.taux };
+function arrondi(montant: number): number {
+  return Math.round(montant * 100) / 100;
 }
 
-function coefficientUrgence(dateDemande: Date, dateDepart: Date): Coefficient {
-  const jours = Math.floor(
-    (dateDepart.getTime() - dateDemande.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  const u = CONFIG_PRICING.urgence;
-  if (jours <= u.prioritaire.seuil_max_jours)
-    return { libelle: u.prioritaire.libelle, taux: u.prioritaire.taux };
-  if (jours <= u.urgent.seuil_max_jours)
-    return { libelle: u.urgent.libelle, taux: u.urgent.taux };
-  if (jours < u.normal.seuil_max_jours)
-    return { libelle: u.normal.libelle, taux: u.normal.taux };
-  return { libelle: u.anticipe.libelle, taux: u.anticipe.taux };
-}
-
-function coefficientCapacite(nbPassagers: number): Coefficient {
-  const tranche = CONFIG_PRICING.capacite.find((t) => nbPassagers <= t.max);
-  return { libelle: `Capacité ${tranche!.libelle}`, taux: tranche!.taux };
-}
+const MOIS_NOMS = [
+  "janvier", "fevrier", "mars", "avril", "mai", "juin",
+  "juillet", "aout", "septembre", "octobre", "novembre", "decembre",
+];
 
 // ──────────────────────────────────────────────────────────────────────────
 // Fonction principale
 // ──────────────────────────────────────────────────────────────────────────
 
-export function calculerDevis(params: ParamsDevis): ResultatDevis {
-  const {
-    nb_passagers,
-    date_depart,
-    date_demande,
-    distance_km,
-    type_trajet = "simple",
-    options = [],
-  } = params;
+export function calculerDevis(input: ParamsDevis, config: ConfigPricing = CONFIG_PRICING): ResultatDevis {
+  const { params, matrices, forfaits } = config;
 
-  // --- Validation des entrées (cas limites) ---
-  if (!Number.isFinite(nb_passagers) || nb_passagers <= 0) {
-    throw new Error("Nombre de passagers invalide (doit être > 0).");
-  }
-  if (nb_passagers > CONFIG_PRICING.capacite_max) {
-    throw new Error(
-      `Capacité dépassée (${nb_passagers} > ${CONFIG_PRICING.capacite_max}). ` +
-        "Escalade vers un commercial humain requise (flux manuel).",
-    );
-  }
-  if (!Number.isFinite(distance_km) || distance_km <= 0) {
-    throw new Error("Distance invalide (doit être > 0 km).");
-  }
+  const today = input.date_reference
+    ? new Date(input.date_reference)
+    : params.TODAY
+      ? new Date(params.TODAY)
+      : new Date();
 
-  const dDepart = new Date(date_depart);
-  const dDemande = date_demande ? new Date(date_demande) : new Date();
-  if (Number.isNaN(dDepart.getTime())) {
-    throw new Error("Date de départ invalide.");
-  }
-  if (Number.isNaN(dDemande.getTime())) {
-    throw new Error("Date de demande invalide.");
-  }
-  if (dDepart.getTime() < dDemande.getTime()) {
-    throw new Error(
-      "Date incohérente : le départ est antérieur à la demande.",
-    );
-  }
+  // 1. Trajet et distances
+  const distanceUnTrajetKm = (input.distance_metres || 0) / 1000;
+  const multiplicateurTrajet = input.type_trajet === "Aller-Retour" ? 2 : 1;
+  const distanceTotaleKm = distanceUnTrajetKm * multiplicateurTrajet;
 
-  // --- 1. Base de prix selon grille forfait + aller-retour ---
-  const baseSimple = baseTransfertSimple(distance_km);
-  const baseDistance =
-    type_trajet === "aller_retour" ? baseSimple * 2 : baseSimple;
-
-  // --- 2. Coefficients (saison, urgence, capacité) appliqués à la base ---
-  const coefficients: Coefficient[] = [
-    coefficientSaison(dDepart),
-    coefficientUrgence(dDemande, dDepart),
-    coefficientCapacite(nb_passagers),
-  ];
-  const facteur = coefficients.reduce((acc, c) => acc * (1 + c.taux), 1);
-  const baseAjustee = baseDistance * facteur;
-
-  const libelleBase =
-    type_trajet === "aller_retour"
-      ? "Transfert aller/retour (base forfait)"
-      : "Transfert simple (base forfait)";
-
-  const lignes: LigneDevis[] = [
-    { libelle: libelleBase, montant: arrondi(baseDistance) },
-  ];
-  for (const c of coefficients) {
-    if (c.taux !== 0) {
-      lignes.push({
-        libelle: `${c.libelle} (${c.taux > 0 ? "+" : ""}${Math.round(
-          c.taux * 100,
-        )} %)`,
-        montant: arrondi(baseDistance * c.taux),
-      });
+  // 2. Planning (nuits / jours)
+  let nbNuits = 0;
+  let nbJours = 1;
+  if (input.date_depart && input.date_retour) {
+    const d1 = new Date(input.date_depart);
+    const d2 = new Date(input.date_retour);
+    const diffDays = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays > 0) {
+      nbNuits = diffDays;
+      nbJours = diffDays + 1;
     }
   }
 
-  // --- 3. Options (montants fixes) ---
-  let totalOptions = 0;
-  for (const opt of options) {
-    const quantite = opt.quantite ?? 1;
-    let montant: number;
-    let libelle: string;
-    switch (opt.type) {
-      case "guide":
-        montant = CONFIG_PRICING.options.guide * quantite;
-        libelle = `Guide / accompagnateur (${quantite} j)`;
-        break;
-      case "nuit_chauffeur":
-        montant = CONFIG_PRICING.options.nuit_chauffeur * quantite;
-        libelle = `Nuit chauffeur (${quantite})`;
-        break;
-      case "peages":
-        if (!Number.isFinite(opt.montant)) {
-          throw new Error("Option péages : montant forfaitaire requis.");
-        }
-        montant = opt.montant!;
-        libelle = "Péages (forfait)";
-        break;
-      default:
-        throw new Error(`Option inconnue : ${(opt as Option).type}`);
+  // 3. Coefficients (Matrices) — additifs
+  const pax = input.nb_passagers || 0;
+  const matCapacite = matrices.find((m) => m.Type_Critere === "Capacite" && matchPalier(pax, m.Valeur_Cle));
+  const coefCapacite = matCapacite ? Number(matCapacite.Coefficient) : 0;
+  const idCapacite = matCapacite ? matCapacite.ID_Critere : "AUCUN";
+
+  const dDepart = new Date(input.date_depart);
+  const joursAnticipation = Math.floor((dDepart.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const matAnticipation = matrices.find((m) => m.Type_Critere === "Anticipation" && matchPalier(joursAnticipation, m.Valeur_Cle));
+  const coefAnticipation = matAnticipation ? Number(matAnticipation.Coefficient) : 0;
+  const idAnticipation = matAnticipation ? matAnticipation.ID_Critere : "AUCUN";
+
+  const moisDepart = !isNaN(dDepart.getTime()) ? MOIS_NOMS[dDepart.getUTCMonth()] : "inconnu";
+  const matSaison = matrices.find(
+    (m) => m.Type_Critere === "Saisonnalite" && String(m.Valeur_Cle).toLowerCase().includes(moisDepart),
+  );
+  const coefSaison = matSaison ? Number(matSaison.Coefficient) : 0;
+  const idSaison = matSaison ? matSaison.ID_Critere : "AUCUN";
+
+  const coefGlobalMatrices = coefCapacite + coefAnticipation + coefSaison;
+
+  // 4. Coûts secs (paramètres dynamiques)
+  const SEUIL = Number(params.SEUIL_DIST_FORFAIT);
+  const prixKmHorsForfait = Number(params.PRIX_KM_HORS_FORFAIT);
+
+  let coutTransportSec: number;
+  let detailsForfait: string;
+
+  if (distanceTotaleKm > 0 && distanceTotaleKm <= SEUIL) {
+    const forfaitTrouve = forfaits.find((f) => matchPalier(distanceTotaleKm, f.Palier_KM));
+    if (forfaitTrouve && forfaitTrouve.Tarif_Forfait_HT) {
+      coutTransportSec = Number(forfaitTrouve.Tarif_Forfait_HT);
+      detailsForfait = `Forfait appliqué: Règle [ ${forfaitTrouve.Palier_KM} ] (pour ${distanceTotaleKm.toFixed(2)} km réels)`;
+    } else {
+      coutTransportSec = distanceTotaleKm * prixKmHorsForfait;
+      detailsForfait = `Erreur: Aucun palier valide pour ${distanceTotaleKm.toFixed(2)} km - Tarif au KM réel activé`;
     }
-    totalOptions += montant;
-    lignes.push({ libelle, montant: arrondi(montant) });
+  } else {
+    coutTransportSec = distanceTotaleKm * prixKmHorsForfait;
+    detailsForfait = `Tarif au KM réel activé (${distanceTotaleKm.toFixed(2)} km > ${SEUIL} km)`;
   }
 
-  // --- 4. Marge commerciale (+15 %) ---
-  const sousTotal = baseAjustee + totalOptions;
-  const marge = sousTotal * CONFIG_PRICING.marge_commerciale;
-  coefficients.push({
-    libelle: "Marge commerciale",
-    taux: CONFIG_PRICING.marge_commerciale,
-  });
-  lignes.push({ libelle: "Marge commerciale (+15 %)", montant: arrondi(marge) });
+  const prixNuitChauffeur = Number(params.PRIX_NUIT_CHAUFFEUR);
+  const prixGuideJour = Number(params.PRIX_GUIDE_JOUR);
 
-  // --- 5. Totaux HT / TVA / TTC ---
-  const prix_ht = arrondi(sousTotal + marge);
-  const tva = arrondi(prix_ht * CONFIG_PRICING.tva);
-  const prix_ttc = arrondi(prix_ht + tva);
+  const coutNuites = nbNuits * prixNuitChauffeur;
+  const coutGuide = input.option_guide ? nbJours * prixGuideJour : 0;
+
+  const sousTotalBrut = coutTransportSec + coutNuites + coutGuide;
+
+  // 5. Application finale (coefficients additifs, marge, TVA)
+  const coutApresMatrices = sousTotalBrut * (1 + coefGlobalMatrices);
+
+  const margeCommerciale = Number(params.MARGE_COMMERCIALE);
+  const prixDeVenteHT = coutApresMatrices / (1 - margeCommerciale);
+
+  const tva = Number(params.TVA_TRANSPORT);
+  const prixDeVenteTTC = prixDeVenteHT * (1 + tva);
+  const montantTVA = prixDeVenteTTC - prixDeVenteHT;
 
   return {
-    prix_ht,
-    tva,
-    prix_ttc,
-    lignes,
-    coefficients,
+    prix_ht: arrondi(prixDeVenteHT),
+    prix_ttc: arrondi(prixDeVenteTTC),
+    tva: arrondi(montantTVA),
+    distance_totale_km: arrondi(distanceTotaleKm),
     devise: "EUR",
+    details: {
+      type_tarification: detailsForfait,
+      aller_simple_km: arrondi(distanceUnTrajetKm),
+      distance_facturee_km: arrondi(distanceTotaleKm),
+      jours_mobilises: nbJours,
+      nuits_chauffeur: nbNuits,
+      matrices: {
+        capacite: { regle: idCapacite, coef: coefCapacite },
+        saisonnalite: { regle: idSaison, coef: coefSaison },
+        anticipation: { regle: idAnticipation, coef: coefAnticipation },
+        impact_total_coef: coefGlobalMatrices,
+      },
+      couts: {
+        transport_sec: arrondi(coutTransportSec),
+        frais_nuites: arrondi(coutNuites),
+        frais_guide: arrondi(coutGuide),
+        sous_total_avant_coef: arrondi(sousTotalBrut),
+        cout_revient_apres_coef: arrondi(coutApresMatrices),
+      },
+      taxes_et_marge: {
+        marge_commerciale: margeCommerciale,
+        montant_marge: arrondi(prixDeVenteHT - coutApresMatrices),
+        tva_appliquee: tva,
+        montant_tva: arrondi(montantTVA),
+      },
+    },
   };
 }
+
+// ──────────────────────────────────────────────────────────────────────────
+// Config par défaut — miroir exact de la base Airtable "NeoTravel V2"
+// ──────────────────────────────────────────────────────────────────────────
+
+export const CONFIG_PRICING: ConfigPricing = {
+  params: {
+    SEUIL_DIST_FORFAIT: 180,
+    PRIX_KM_HORS_FORFAIT: 5,
+    PRIX_NUIT_CHAUFFEUR: 120,
+    PRIX_GUIDE_JOUR: 80,
+    MARGE_COMMERCIALE: 0.15,
+    TVA_TRANSPORT: 0.1,
+  },
+  matrices: [
+    // Anticipation (jours avant départ)
+    { ID_Critere: "DD_PRIORITAIRE", Type_Critere: "Anticipation", Valeur_Cle: "<=2", Coefficient: 0.1 },
+    { ID_Critere: "DD_URGENT", Type_Critere: "Anticipation", Valeur_Cle: ">2 et <=7", Coefficient: 0.05 },
+    { ID_Critere: "DD_NORMAL", Type_Critere: "Anticipation", Valeur_Cle: ">7 et <90", Coefficient: -0.05 },
+    { ID_Critere: "DD_3MOISETPLUS", Type_Critere: "Anticipation", Valeur_Cle: ">=90", Coefficient: -0.1 },
+    // Capacité (passagers)
+    { ID_Critere: "CAP_MINIBUS", Type_Critere: "Capacite", Valeur_Cle: "<=19", Coefficient: -0.05 },
+    { ID_Critere: "CAP_STANDARD", Type_Critere: "Capacite", Valeur_Cle: ">19 et <=53", Coefficient: 0 },
+    { ID_Critere: "CAP_GT", Type_Critere: "Capacite", Valeur_Cle: ">53 et <=63", Coefficient: 0.15 },
+    { ID_Critere: "CAP_XL", Type_Critere: "Capacite", Valeur_Cle: ">63 et <=67", Coefficient: 0.2 },
+    { ID_Critere: "CAP_DOUBLE", Type_Critere: "Capacite", Valeur_Cle: ">67 et <=85", Coefficient: 0.4 },
+    // Saisonnalité (mois de départ)
+    { ID_Critere: "S_MOYENNE", Type_Critere: "Saisonnalite", Valeur_Cle: "decembre, octobre, septembre", Coefficient: 0 },
+    { ID_Critere: "S_HAUTE", Type_Critere: "Saisonnalite", Valeur_Cle: "mars, avril, juillet", Coefficient: 0.1 },
+    { ID_Critere: "S_TRES_HAUTE", Type_Critere: "Saisonnalite", Valeur_Cle: "mai, juin", Coefficient: 0.15 },
+    { ID_Critere: "S_BASSE", Type_Critere: "Saisonnalite", Valeur_Cle: "novembre, janvier, fevrier, aout", Coefficient: -0.07 },
+  ],
+  forfaits: [
+    { Palier_KM: "<=30", Tarif_Forfait_HT: 250 },
+    { Palier_KM: ">30 et <=40", Tarif_Forfait_HT: 320 },
+    { Palier_KM: ">40 et <=50", Tarif_Forfait_HT: 350 },
+    { Palier_KM: ">50 et <=60", Tarif_Forfait_HT: 390 },
+    { Palier_KM: ">60 et <=70", Tarif_Forfait_HT: 430 },
+    { Palier_KM: ">70 et <=80", Tarif_Forfait_HT: 500 },
+    { Palier_KM: ">80 et <=90", Tarif_Forfait_HT: 540 },
+    { Palier_KM: ">90 et <=100", Tarif_Forfait_HT: 580 },
+    { Palier_KM: ">100 et <=110", Tarif_Forfait_HT: 620 },
+    { Palier_KM: ">110 et <=120", Tarif_Forfait_HT: 660 },
+    { Palier_KM: ">120 et <=130", Tarif_Forfait_HT: 700 },
+    { Palier_KM: ">130 et <=140", Tarif_Forfait_HT: 740 },
+    { Palier_KM: ">140 et <=150", Tarif_Forfait_HT: 780 },
+    { Palier_KM: ">150 et <=160", Tarif_Forfait_HT: 820 },
+    { Palier_KM: ">160 et <=170", Tarif_Forfait_HT: 860 },
+    { Palier_KM: ">170 et <=180", Tarif_Forfait_HT: 900 },
+  ],
+};
