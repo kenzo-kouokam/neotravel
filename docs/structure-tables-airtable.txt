@@ -1,0 +1,179 @@
+================================================================================
+STRUCTURE DES TABLES AIRTABLE — NeoTravel
+Base : NeoTravel V2 - Option A  (appqJ7LO7TyFkLQ6h)
+Généré le 30/06/2026 — structures uniquement (sans les données)
+================================================================================
+
+Légende des types :
+  autoNumber          = identifiant auto-incrémenté (clé primaire)
+  singleLineText      = texte court
+  multilineText       = texte long
+  email / phoneNumber = champs typés
+  number              = nombre
+  currency            = montant (€)
+  percent             = pourcentage (0.15 = 15 %)
+  date                = date
+  createdTime         = date de création (auto, lecture seule)
+  lastModifiedTime    = date de dernière modification (auto, lecture seule)
+  formula             = champ calculé (lecture seule)
+  singleSelect        = liste déroulante (un choix)
+  multipleSelects     = liste déroulante (plusieurs choix)
+  multipleRecordLinks = lien vers une autre table
+
+
+================================================================================
+1. Parametres_Globaux            (tbl7nLUUXxvPKOxXe)
+   Rôle : seuils, marge, TVA, prix unitaires du moteur de devis
+   Clé primaire : ID
+--------------------------------------------------------------------------------
+   Champ                  | Type           | Remarque
+   -----------------------+----------------+---------------------------------
+   ID                     | autoNumber     |
+   SEUIL_HITL_PRIX        | number         | seuil escalade humaine (prix)
+   SEUIL_HITL_PAX         | number         | seuil escalade humaine (passagers, 85)
+   SEUIL_URGENCE_TEMPS    | number         | seuil urgence (heures)
+   MARGE_COMMERCIALE      | percent        | marge nette (0.15)
+   TVA_TRANSPORT          | percent        | TVA transport (0.10)
+   SEUIL_DIST_FORFAIT     | number         | distance max forfait (180 km)
+   PRIX_KM_HORS_FORFAIT   | number         | tarif au km hors forfait (5 €)
+   Seuil_Nuit_KM          | number         | seuil déclenchement nuitée
+   PRIX_NUIT_CHAUFFEUR    | number         | prix nuitée chauffeur (120 €)
+   PRIX_GUIDE_JOUR        | number         | prix guide / jour (80 €)
+   TODAY                  | formula        | date pivot système (anticipation)
+
+
+================================================================================
+2. Forfaits_KM                   (tblsdHbDtjTU1vcHG)
+   Rôle : grille tarifaire forfaitaire par palier de distance
+   Clé primaire : Palier_KM
+--------------------------------------------------------------------------------
+   Champ                  | Type           | Remarque
+   -----------------------+----------------+---------------------------------
+   Palier_KM              | singleLineText | ex : ">80 et <=90"
+   Tarif_Forfait_HT       | number         | tarif forfaitaire HT du palier
+
+
+================================================================================
+3. Matrices                      (tblR3GEeeY0xy42Bs)
+   Rôle : coefficients de tarification (saison / anticipation / capacité)
+   Clé primaire : ID_Critere
+--------------------------------------------------------------------------------
+   Champ                  | Type           | Remarque
+   -----------------------+----------------+---------------------------------
+   ID_Critere             | singleLineText | ex : "S_HAUTE", "CAP_GT"
+   Type_Critere           | singleSelect   | Anticipation | Capacite | Saisonnalite
+   Valeur_Cle             | multilineText  | règle d'intervalle ou liste de mois
+   Coefficient            | percent        | coefficient additif (ex : 0.10, -0.07)
+
+
+================================================================================
+4. Demandes_Schema               (tblIxlPvgHVdJ9LmR)
+   Rôle : demandes clients qualifiées par l'agent
+   Clé primaire : ID_Demande
+--------------------------------------------------------------------------------
+   Champ                  | Type                | Remarque
+   -----------------------+---------------------+----------------------------
+   ID_Demande             | autoNumber          |
+   Date_Creation          | createdTime         |
+   Nom_Client             | singleLineText      |
+   Email_Client           | email               |
+   Numero_Tel             | phoneNumber         |
+   Statut                 | singleSelect        | Nouveau | Devis_Ok | Devis_Transmis |
+                          |                     | Humain | Relance_1 | Relance_2 |
+                          |                     | Relance_3 | Accepte | Refuse | Cloture
+   Type_Intervention_Humn | multipleSelects     | Urgence | International |
+                          |                     | Hors-Capacite | Standard
+   Type_Trajet            | singleSelect        | Aller-Simple | Aller-Retour
+   Ville_Depart           | singleLineText      |
+   Ville_Arrivee          | singleLineText      |
+   Distance_Saisie_M      | number              | distance OSRM (mètres)
+   Date_Depart            | date                |
+   Date_Retour            | date                |
+   Nombre_Passagers       | number              |
+   Option_Guide           | singleSelect        | Oui | Non
+   Contexte_Message       | multilineText       | résumé IA / raison d'escalade
+   Cle_Idempotence        | singleLineText      | = sessionId (anti-doublon)
+   Devis_Schema           | multipleRecordLinks | -> Devis_Schema
+   Relances_Schema        | multipleRecordLinks | -> Relances_Schema
+   Logs_Observabilite     | multipleRecordLinks | -> Logs_Observabilite
+
+
+================================================================================
+5. Devis_Schema                  (tbl3GuInzlUgtA7PK)
+   Rôle : devis calculés par le moteur déterministe
+   Clé primaire : ID_Devis
+--------------------------------------------------------------------------------
+   Champ                      | Type                | Remarque
+   ---------------------------+---------------------+------------------------
+   ID_Devis                   | autoNumber          |
+   Demande_Associee           | multipleRecordLinks | -> Demandes_Schema
+   Validation_Humain          | singleSelect        | En_Attente | Valide_Pour_Envoi |
+                              |                     | Devis_Transmis
+   Distance_Km                | number              | distance facturée (km)
+   Prix_HT_Brut_KM            | currency            | transport sec
+   Coef_Saison_Applique       | percent             |
+   Coef_Anticipation_Applique | percent             |
+   Coef_Capacite_Applique     | percent             |
+   Frais_Guide                | currency            |
+   Frais_Nuite                | currency            |
+   Prix_Total_HT              | currency            | prix de vente HT
+   Marge_Commerciale_HT       | currency            | montant de marge
+   TVA_Calculer               | currency            | montant TVA
+   Prix_Total_TTC             | currency            | prix de vente TTC
+   Date_Envoi_Effectif        | createdTime         |
+   Dernière modification      | lastModifiedTime    | suit Validation_Humain (utilisé pour relances)
+   Devis_PDF                  | multilineText       | lien / contenu du PDF
+   Mois_Envoi                 | formula             | YYYY-MM (axe X graphiques par mois)
+
+
+================================================================================
+6. Relances_Schema               (tblkJq9PZQgHhLwr0)
+   Rôle : relances de suivi automatiques
+   Clé primaire : ID_Relance
+--------------------------------------------------------------------------------
+   Champ                  | Type                | Remarque
+   -----------------------+---------------------+----------------------------
+   ID_Relance             | autoNumber          |
+   Demande_Associee       | multipleRecordLinks | -> Demandes_Schema
+   Type_Relance           | singleSelect        | Relance_1 | Relance_2 | Relance_3
+   Date_Envoi_Prevue      | date                |
+
+
+================================================================================
+7. Logs_Observabilite            (tblPu3TJcRPJB04cC)
+   Rôle : observabilité IA (tokens, coût, durée par exécution)
+   Clé primaire : ID_Log
+--------------------------------------------------------------------------------
+   Champ                  | Type                | Remarque
+   -----------------------+---------------------+----------------------------
+   ID_Log                 | autoNumber          |
+   Demande_Associee       | multipleRecordLinks | -> Demandes_Schema
+   Tokens_In              | number              | tokens en entrée
+   Tokens_Out             | number              | tokens en sortie
+   Cout_Estime_Inference  | number              | coût d'inférence estimé (€)
+   Duree_Execution_MS     | number              | durée d'exécution (ms)
+
+
+================================================================================
+8. xxx                           (tblkT7fTF49KzUzHa)
+   Rôle : ancienne table de paramètres (héritée / non utilisée par les workflows)
+   Clé primaire : ID_Parametre
+--------------------------------------------------------------------------------
+   Champ                  | Type           | Remarque
+   -----------------------+----------------+---------------------------------
+   ID_Parametre           | singleLineText |
+   Description            | multilineText  |
+   Valeur_Numerique       | number         |
+   Unite                  | singleLineText |
+
+
+================================================================================
+RELATIONS ENTRE TABLES
+================================================================================
+   Demandes_Schema 1 ── n Devis_Schema        (Demande_Associee)
+   Demandes_Schema 1 ── n Relances_Schema      (Demande_Associee)
+   Demandes_Schema 1 ── n Logs_Observabilite   (Demande_Associee)
+
+   Tables de référence (lecture seule par les workflows) :
+   Parametres_Globaux · Forfaits_KM · Matrices
+================================================================================
