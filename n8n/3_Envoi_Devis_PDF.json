@@ -1,0 +1,929 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "base": {
+          "__rl": true,
+          "value": "appqJ7LO7TyFkLQ6h",
+          "mode": "list",
+          "cachedResultName": "NeoTravel V2 - Option A",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblIxlPvgHVdJ9LmR",
+          "mode": "list",
+          "cachedResultName": "Demandes_Schema",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h/tblIxlPvgHVdJ9LmR"
+        },
+        "id": "={{ $json.fields.Demande_Associee[0] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        -416
+      ],
+      "id": "9eec617a-fd94-482f-b7b0-5d533930ae1c",
+      "name": "Get_Demandes_Schema",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "dlOspPYGINM1Oosb",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9bdd2a14-1c44-4f0a-a831-a63987d7dc7b",
+              "name": "html",
+              "value": "=<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n    <meta charset=\"utf-8\">\n    <style>\n        @page {\n            size: A4;\n            margin: 12mm 15mm;\n        }\n        :root {\n            --primary-brown: #9C4F2A; /* Marron Terre cuite */\n            --dark-text: #2A1F19;     /* Anthracite */\n            --light-bg: #FDFBF8;      /* Fond clair */\n            --accent-bg: #F6E3D4;     /* Beige / Encart */\n            --border-color: #E8D9CE;\n        }\n        body { \n            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; \n            color: var(--dark-text); \n            background-color: #ffffff;\n            margin: 0; padding: 0; font-size: 11px;\n        }\n        .avoid-break { page-break-inside: avoid; }\n        .header { \n            display: flex; justify-content: space-between; align-items: flex-start;\n            border-bottom: 2px solid var(--primary-brown); padding-bottom: 12px; margin-bottom: 15px;\n        }\n        .logo-container h1 { font-size: 24px; font-weight: 800; color: var(--primary-brown); margin: 0 0 5px 0; }\n        .company-details { font-size: 10px; color: #555; line-height: 1.4; }\n        .quote-meta { text-align: right; font-size: 11px; line-height: 1.4; }\n        .quote-title { font-size: 20px; font-weight: bold; color: var(--dark-text); margin: 0 0 5px 0; letter-spacing: 1px; }\n        \n        .info-section { display: flex; justify-content: space-between; margin-bottom: 15px; gap: 15px; }\n        .info-box { background-color: var(--light-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; width: 48%; box-sizing: border-box; }\n        .info-box h3 { margin-top: 0; color: var(--primary-brown); font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; text-transform: uppercase; }\n        .info-box p { margin: 4px 0; line-height: 1.4; }\n        \n        .context-box { margin-bottom: 15px; font-size: 11px; color: #555; background: var(--light-bg); padding: 10px 12px; border-left: 3px solid var(--primary-brown); border-radius: 4px; line-height: 1.4; }\n        \n        .table-container { margin-bottom: 15px; }\n        table { width: 100%; border-collapse: collapse; margin-top: 5px; }\n        th { background-color: var(--accent-bg); color: var(--primary-brown); padding: 8px 10px; text-align: left; font-weight: 600; font-size: 10px; text-transform: uppercase; border: 1px solid var(--border-color); }\n        td { padding: 10px; border: 1px solid var(--border-color); vertical-align: top; }\n        .text-right { text-align: right; font-weight: 600; }\n        \n        .totals-container { width: 280px; float: right; background-color: var(--light-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-top: 5px; }\n        .total-line { display: flex; justify-content: space-between; padding: 5px 0; color: #555; font-size: 11px; }\n        .grand-total { margin-top: 5px; padding-top: 10px; border-top: 2px solid var(--primary-brown); font-size: 14px; font-weight: bold; color: var(--dark-text); }\n        .clearfix::after { content: \"\"; clear: both; display: table; }\n        .footer { margin-top: 30px; text-align: center; font-size: 8px; color: #888; border-top: 1px solid var(--border-color); padding-top: 10px; line-height: 1.3; }\n    </style>\n</head>\n<body>\n\n    <div class=\"header\">\n        <div class=\"logo-container\">\n            <h1>NeoTravel</h1>\n            <div class=\"company-details\">\n                <strong>NeoTravel SAS</strong><br>\n                14 Avenue de l'Opéra, 75001 Paris<br>\n                📞 01 84 25 36 99 | ✉️ contact@neotravel.fr\n            </div>\n        </div>\n        <div class=\"quote-meta\">\n            <h2 class=\"quote-title\">DEVIS</h2>\n            <strong>Devis N° :</strong> {{ $('Loop Over Items').item.json.fields.ID_Devis || 'N/A' }}<br>\n            <strong>Demande Réf N° :</strong> {{ $json.fields.ID_Demande || 'N/A' }}<br>\n            <strong>Date de création :</strong> {{ $json.fields.Date_Creation ? new Date($json.fields.Date_Creation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A' }}<br>\n            <strong>Validité :</strong> 15 jours\n        </div>\n    </div>\n\n    <div class=\"info-section avoid-break\">\n        <div class=\"info-box\">\n            <h3>1. Informations Client</h3>\n            <p><strong>Nom du Client :</strong> {{ $json.fields.Nom_Client || 'Non renseigné' }}</p>\n            <p><strong>Adresse E-mail :</strong> {{ $json.fields.Email_Client || 'Non renseignée' }}</p>\n            <p><strong>Téléphone :</strong> {{ $json.fields.Numero_Tel || 'Non renseigné' }}</p>\n        </div>\n        <div class=\"info-box\">\n            <h3>2. Logistique du Voyage</h3>\n            <p><strong>Trajet :</strong> {{ $json.fields.Ville_Depart }} ➔ {{ $json.fields.Ville_Arrivee }}</p>\n            <p><strong>Type de Trajet :</strong> {{ $json.fields.Type_Trajet || 'Standard' }}</p>\n            <p><strong>Date de Départ :</strong> {{ $json.fields.Date_Depart ? new Date($json.fields.Date_Depart).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A' }}</p>\n            <p><strong>Date de Retour :</strong> {{ $json.fields.Date_Retour ? new Date($json.fields.Date_Retour).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A' }}</p>\n            <p><strong>Nombre de Passagers :</strong> {{ $json.fields.Nombre_Passagers || '0' }} pax</p>\n        </div>\n    </div>\n    \n    <div class=\"context-box avoid-break\">\n        <strong>3. Contexte & Description du besoin (Analyse IA) :</strong><br>\n        <em>\"{{ $json.fields.Contexte_Message || 'Aucune description spécifique fournie.' }}\"</em>\n    </div>\n\n    <div class=\"table-container avoid-break\">\n        <h4 style=\"color: var(--primary-brown); margin: 10px 0 5px 0; font-size: 12px; text-transform: uppercase;\">4. Transparence des Coûts Opérationnels</h4>\n        <table>\n            <thead>\n                <tr>\n                    <th>Description de la prestation de base & options</th>\n                    <th style=\"width: 120px; text-align: right;\">Distance</th>\n                    <th class=\"text-right\" style=\"width: 130px;\">Montant HT</th>\n                </tr>\n            </thead>\n            <tbody>\n                <tr>\n                    <td><strong>Prix HT Brut KM (Transport Sec)</strong><br><span style=\"font-size: 9px; color:#666;\">Coût de mobilisation du véhicule au kilomètre</span></td>\n                    <td style=\"text-align: right;\">{{ $('Loop Over Items').item.json.fields.Distance_Km || ($json.fields.Distance_Saisie_M ? ($json.fields.Distance_Saisie_M / 1000).toFixed(2) : '0') }} km</td>\n                    <td class=\"text-right\">{{ (parseFloat($('Loop Over Items').item.json.fields.Prix_HT_Brut_KM || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €</td>\n                </tr>\n                <tr>\n                    <td><strong>Frais Guide Accompagnateur</strong><br><span style=\"font-size: 9px; color:#666;\">Forfait encadrement et assistance à bord</span></td>\n                    <td style=\"text-align: right;\">-</td>\n                    <td class=\"text-right\">{{ (parseFloat($('Loop Over Items').item.json.fields.Frais_Guide || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €</td>\n                </tr>\n                <tr>\n                    <td><strong>Frais Nuitée(s) Chauffeur</strong><br><span style=\"font-size: 9px; color:#666;\">Prise en charge de l'hébergement réglementaire du conducteur</span></td>\n                    <td style=\"text-align: right;\">-</td>\n                    <td class=\"text-right\">{{ (parseFloat($('Loop Over Items').item.json.fields.Frais_Nuite || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €</td>\n                </tr>\n            </tbody>\n        </table>\n    </div>\n\n    <div class=\"table-container avoid-break\">\n        <h4 style=\"color: var(--primary-brown); margin: 15px 0 5px 0; font-size: 12px; text-transform: uppercase;\">5. Modulateurs de Tarification & Gestion</h4>\n        <table>\n            <thead>\n                <tr>\n                    <th>Indice / Coefficient de la matrice commerciale</th>\n                    <th class=\"text-right\" style=\"width: 250px;\">Impact appliqué</th>\n                </tr>\n            </thead>\n            <tbody>\n                <tr>\n                    <td><strong>Coefficient Capacité Appliqué</strong> (Ajustement selon taille du groupe)</td>\n                    <td class=\"text-right\">{{ (parseFloat($('Loop Over Items').item.json.fields.Coef_Capacite_Applique || 0) * 100).toFixed(0) }}%</td>\n                </tr>\n                <tr>\n                    <td><strong>Coefficient Saison Appliqué</strong> (Fluctuation saisonnière de la période)</td>\n                    <td class=\"text-right\">{{ (parseFloat($('Loop Over Items').item.json.fields.Coef_Saison_Applique || 0) * 100).toFixed(0) }}%</td>\n                </tr>\n                <tr>\n                    <td><strong>Coefficient Anticipation Appliqué</strong> (Délai de réservation)</td>\n                    <td class=\"text-right\">{{ (parseFloat($('Loop Over Items').item.json.fields.Coef_Anticipation_Applique || 0) * 100).toFixed(0) }}%</td>\n                </tr>\n                <tr>\n                    <td><strong>Marge Commerciale HT</strong> (Frais d'organisation et d'agence)</td>\n                    <td class=\"text-right\" style=\"color: #666;\">{{ (parseFloat($('Loop Over Items').item.json.fields.Marge_Commerciale_HT || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €</td>\n                </tr>\n            </tbody>\n        </table>\n    </div>\n\n    <div class=\"clearfix avoid-break\">\n        <div class=\"totals-container\">\n            <div class=\"total-line\">\n                <span><strong>Prix Total HT</strong></span>\n                <span>{{ (parseFloat($('Loop Over Items').item.json.fields.Prix_Total_HT || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €</span>\n            </div>\n            <div class=\"total-line\">\n                <span>TVA Calculée (10%)</span>\n                <span>{{ (parseFloat($('Loop Over Items').item.json.fields.TVA_Calculer || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €</span>\n            </div>\n            <div class=\"total-line grand-total\">\n                <span>MONTANT TOTAL TTC</span>\n                <span style=\"color: var(--primary-brown);\">{{ (parseFloat($('Loop Over Items').item.json.fields.Prix_Total_TTC || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }} €</span>\n            </div>\n        </div>\n    </div>\n\n    <div class=\"footer avoid-break\">\n        NeoTravel SAS au capital de 15 000 € - SIRET : 890 123 456 00012 - RCS Paris - TVA Intracommunautaire : FR 12 890 123 456<br>\n        Ce document constitue une proposition commerciale valable 15 jours. Pour acceptation, merci de renvoyer ce document signé avec la mention \"Bon pour accord\".\n    </div>\n\n</body>\n</html>",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        -416
+      ],
+      "id": "caa81ce4-d037-41f7-a6d3-e35430b6bf2f",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "html": "={{ $json.html }}",
+        "additionalOptions": {}
+      },
+      "type": "n8n-nodes-pdfbolt.pdfBolt",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        -416
+      ],
+      "id": "13d81232-b379-4f97-80a7-2d39c6e7defe",
+      "name": "PDFBolt",
+      "credentials": {
+        "pdfBoltApi": {
+          "id": "UzlqyPg9jmTPeZis",
+          "name": "PDFBolt account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Get_Demandes_Schema').item.json.fields.Email_Client }}",
+        "subject": "=NeoTravel - Votre devis de transport N° {{ $('Loop Over Items').item.json.fields.ID_Devis }}",
+        "message": "=Bonjour {{ $('Get_Demandes_Schema').item.json.fields.Nom_Client }},  Veuillez trouver ci-joint notre proposition tarifaire concernant votre demande de transport de groupe.  Restant à votre entière disposition, L'équipe NeoTravel",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        -416
+      ],
+      "id": "7ca5bc96-19c4-4e9f-af54-9f8617d4a6d2",
+      "name": "Send a message",
+      "webhookId": "ce767270-7b35-4bba-a3a7-db304d0e7340",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "DK6KEVUIWmIYruo0",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        144,
+        -336
+      ],
+      "id": "b3d4bbdf-ab85-4434-bdf4-82016c5ba5ea",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appqJ7LO7TyFkLQ6h",
+          "mode": "list",
+          "cachedResultName": "NeoTravel V2 - Option A",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl3GuInzlUgtA7PK",
+          "mode": "list",
+          "cachedResultName": "Devis_Schema",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h/tbl3GuInzlUgtA7PK"
+        },
+        "filterByFormula": "{Validation_Humain} = 'Valide_Pour_Envoi'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        -336
+      ],
+      "id": "6180ec2f-3db2-49f9-9f7d-b08386807398",
+      "name": "Search records",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "dlOspPYGINM1Oosb",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        592,
+        -336
+      ],
+      "id": "d7ad1298-4029-4e4d-8f1c-d9c0b69a4747",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appqJ7LO7TyFkLQ6h",
+          "mode": "list",
+          "cachedResultName": "NeoTravel V2 - Option A",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl3GuInzlUgtA7PK",
+          "mode": "list",
+          "cachedResultName": "Devis_Schema",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h/tbl3GuInzlUgtA7PK"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Loop Over Items').item.json.id }}",
+            "Validation_Humain": "Devis_Transmis"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "ID_Devis",
+              "displayName": "ID_Devis",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Demande_Associee",
+              "displayName": "Demande_Associee",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Validation_Humain",
+              "displayName": "Validation_Humain",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "En_Attente",
+                  "value": "En_Attente"
+                },
+                {
+                  "name": "Valide_Pour_Envoi",
+                  "value": "Valide_Pour_Envoi"
+                },
+                {
+                  "name": "Devis_Transmis",
+                  "value": "Devis_Transmis"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Distance_Km",
+              "displayName": "Distance_Km",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Prix_HT_Brut_KM",
+              "displayName": "Prix_HT_Brut_KM",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Coef_Saison_Applique",
+              "displayName": "Coef_Saison_Applique",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Coef_Anticipation_Applique",
+              "displayName": "Coef_Anticipation_Applique",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Coef_Capacite_Applique",
+              "displayName": "Coef_Capacite_Applique",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Frais_Guide",
+              "displayName": "Frais_Guide",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Frais_Nuite",
+              "displayName": "Frais_Nuite",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Prix_Total_HT",
+              "displayName": "Prix_Total_HT",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Marge_Commerciale_HT",
+              "displayName": "Marge_Commerciale_HT",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "TVA_Calculer",
+              "displayName": "TVA_Calculer",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Prix_Total_TTC",
+              "displayName": "Prix_Total_TTC",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date_Envoi_Effectif",
+              "displayName": "Date_Envoi_Effectif",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Devis_PDF",
+              "displayName": "Devis_PDF",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Summary (Devis_PDF)",
+              "displayName": "Summary (Devis_PDF)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Title (Devis_PDF)",
+              "displayName": "Title (Devis_PDF)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Outline (Devis_PDF)",
+              "displayName": "Outline (Devis_PDF)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1712,
+        -336
+      ],
+      "id": "19fb8ae9-be3b-4253-bd4a-0b27088ac187",
+      "name": "Update_Devis_Transmis",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "dlOspPYGINM1Oosb",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appqJ7LO7TyFkLQ6h",
+          "mode": "list",
+          "cachedResultName": "NeoTravel V2 - Option A",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblIxlPvgHVdJ9LmR",
+          "mode": "list",
+          "cachedResultName": "Demandes_Schema",
+          "cachedResultUrl": "https://airtable.com/appqJ7LO7TyFkLQ6h/tblIxlPvgHVdJ9LmR"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Get_Demandes_Schema').item.json.id }}",
+            "Statut": "Devis_Transmis"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "ID_Demande",
+              "displayName": "ID_Demande",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Date_Creation",
+              "displayName": "Date_Creation",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Nom_Client",
+              "displayName": "Nom_Client",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Email_Client",
+              "displayName": "Email_Client",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Numero_Tel",
+              "displayName": "Numero_Tel",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Statut",
+              "displayName": "Statut",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Nouveau",
+                  "value": "Nouveau"
+                },
+                {
+                  "name": "Devis_Ok",
+                  "value": "Devis_Ok"
+                },
+                {
+                  "name": "Devis_Transmis",
+                  "value": "Devis_Transmis"
+                },
+                {
+                  "name": "Humain",
+                  "value": "Humain"
+                },
+                {
+                  "name": "Relance_1",
+                  "value": "Relance_1"
+                },
+                {
+                  "name": "Relance_2",
+                  "value": "Relance_2"
+                },
+                {
+                  "name": "Relance_3",
+                  "value": "Relance_3"
+                },
+                {
+                  "name": "Accepte",
+                  "value": "Accepte"
+                },
+                {
+                  "name": "Refuse",
+                  "value": "Refuse"
+                },
+                {
+                  "name": "Cloture",
+                  "value": "Cloture"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Type_Intervention_Humn",
+              "displayName": "Type_Intervention_Humn",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "options": [
+                {
+                  "name": "Urgence",
+                  "value": "Urgence"
+                },
+                {
+                  "name": "International",
+                  "value": "International"
+                },
+                {
+                  "name": "Hors-Capacite",
+                  "value": "Hors-Capacite"
+                },
+                {
+                  "name": "Standard",
+                  "value": "Standard"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Type_Trajet",
+              "displayName": "Type_Trajet",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Aller-Simple",
+                  "value": "Aller-Simple"
+                },
+                {
+                  "name": "Aller-Retour",
+                  "value": "Aller-Retour"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Ville_Depart",
+              "displayName": "Ville_Depart",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Ville_Arrivee",
+              "displayName": "Ville_Arrivee",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Distance_Saisie_M",
+              "displayName": "Distance_Saisie_M",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date_Depart",
+              "displayName": "Date_Depart",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Date_Retour",
+              "displayName": "Date_Retour",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Nombre_Passagers",
+              "displayName": "Nombre_Passagers",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Option_Guide",
+              "displayName": "Option_Guide",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Oui",
+                  "value": "Oui"
+                },
+                {
+                  "name": "Non",
+                  "value": "Non"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Contexte_Message",
+              "displayName": "Contexte_Message",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Cle_Idempotence",
+              "displayName": "Cle_Idempotence",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Devis_Schema",
+              "displayName": "Devis_Schema",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Relances_Schema",
+              "displayName": "Relances_Schema",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Logs_Observabilite",
+              "displayName": "Logs_Observabilite",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1984,
+        -336
+      ],
+      "id": "798fb0a6-13dc-4e61-aa22-baabf6621121",
+      "name": "Update_Devis_Transmis1",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "dlOspPYGINM1Oosb",
+          "name": "Airtable account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Get_Demandes_Schema": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "PDFBolt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDFBolt": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Update_Devis_Transmis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Get_Demandes_Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update_Devis_Transmis": {
+      "main": [
+        [
+          {
+            "node": "Update_Devis_Transmis1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update_Devis_Transmis1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ec94c016adc5de47fd4fbf16669656bd7ed30cbdfd9303a21104c07c79b6e458"
+  }
+}

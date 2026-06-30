@@ -543,40 +543,7 @@
               "defaultMatch": false,
               "canBeUsedToMatch": true,
               "display": true,
-              "type": "array",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "Etape_Workflow",
-              "displayName": "Etape_Workflow",
-              "required": false,
-              "defaultMatch": false,
-              "canBeUsedToMatch": true,
-              "display": true,
-              "type": "options",
-              "options": [
-                {
-                  "name": "Webhook_Reception",
-                  "value": "Webhook_Reception"
-                },
-                {
-                  "name": "IA_Extraction",
-                  "value": "IA_Extraction"
-                },
-                {
-                  "name": "Code_Calcul",
-                  "value": "Code_Calcul"
-                },
-                {
-                  "name": "Generateur_PDF",
-                  "value": "Generateur_PDF"
-                },
-                {
-                  "name": "Erreur_Systeme",
-                  "value": "Erreur_Systeme"
-                }
-              ],
+              "type": "string",
               "readOnly": false,
               "removed": false
             },
@@ -625,38 +592,13 @@
               "removed": false
             },
             {
-              "id": "Statut_Execution",
-              "displayName": "Statut_Execution",
+              "id": "Demandes_Schema",
+              "displayName": "Demandes_Schema",
               "required": false,
               "defaultMatch": false,
               "canBeUsedToMatch": true,
               "display": true,
-              "type": "options",
-              "options": [
-                {
-                  "name": "Succes",
-                  "value": "Succes"
-                },
-                {
-                  "name": "Echec_Parsing",
-                  "value": "Echec_Parsing"
-                },
-                {
-                  "name": "Timeout",
-                  "value": "Timeout"
-                }
-              ],
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "Message_Erreur",
-              "displayName": "Message_Erreur",
-              "required": false,
-              "defaultMatch": false,
-              "canBeUsedToMatch": true,
-              "display": true,
-              "type": "string",
+              "type": "array",
               "readOnly": false,
               "removed": false
             }
@@ -664,7 +606,9 @@
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         },
-        "options": {}
+        "options": {
+          "typecast": true
+        }
       },
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 2.2,
@@ -1170,7 +1114,9 @@
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         },
-        "options": {}
+        "options": {
+          "typecast": true
+        }
       },
       "type": "n8n-nodes-base.airtable",
       "typeVersion": 2.2,
@@ -1296,6 +1242,10 @@
                 {
                   "name": "Devis_Ok",
                   "value": "Devis_Ok"
+                },
+                {
+                  "name": "Devis_Transmis",
+                  "value": "Devis_Transmis"
                 },
                 {
                   "name": "Humain",
@@ -1519,28 +1469,6 @@
               "display": true,
               "type": "array",
               "readOnly": false,
-              "removed": true
-            },
-            {
-              "id": "Prix_Total_TTC",
-              "displayName": "Prix_Total_TTC",
-              "required": false,
-              "defaultMatch": false,
-              "canBeUsedToMatch": true,
-              "display": true,
-              "type": "string",
-              "readOnly": true,
-              "removed": true
-            },
-            {
-              "id": "URL_Devis_PDF",
-              "displayName": "URL_Devis_PDF",
-              "required": false,
-              "defaultMatch": false,
-              "canBeUsedToMatch": true,
-              "display": true,
-              "type": "string",
-              "readOnly": true,
               "removed": true
             }
           ],
@@ -1770,6 +1698,11 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Update_Statut_Demandes": {
+      "main": [
+        []
       ]
     }
   },
