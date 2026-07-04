@@ -292,7 +292,7 @@ Voir [`.env.example`](.env.example) pour la liste complète.
 | **P2** | n8n Agent | Workflows n8n AI Agent, tool calling, JSON |
 | **P3** | Calcul devis | `calculer_devis()` déterministe + génération PDF |
 | **P4** | Airtable | 7 tables, dashboard Interface direction |
-| **P5 — Cedric Enzo Kouokam** | **Emails & Relances** | Templates HTML × 4, Nodemailer Gmail SMTP, scheduler relances J+3/J+7, idempotence anti-doublon |
+| **P5** | **Emails & Relances** | Templates HTML × 4, Nodemailer Gmail SMTP, scheduler relances J+3/J+7, idempotence anti-doublon |
 
 ---
 
