@@ -80,7 +80,7 @@ Une chaîne **automatisée de bout en bout**, construite en une semaine (MVP) :
                     ┌──────────────▼──────────────────┐
                     │   n8n — Workflow 3               │
                     │   Génération PDF + Envoi email   │
-                    │   (Resend / Brevo)               │
+                    │   (Gmail SMTP + Nodemailer)      │
                     └──────────────┬──────────────────┘
                                    │
                     ┌──────────────▼──────────────────┐
@@ -112,15 +112,15 @@ Une chaîne **automatisée de bout en bout**, construite en une semaine (MVP) :
 |---|---|---|
 | **Frontend** | Next.js 16 + Tailwind v4 | Landing page + Chatbot + Espace commercial |
 | **Déploiement** | **Vercel** | Hébergement frontend (gratuit) |
-| **Agent IA** | n8n AI Agent | Orchestration conversationnelle (Vercel AI Gateway, température 0) |
-| **Orchestration** | **n8n Cloud** | 4 workflows (qualification → devis → PDF → relances) |
+| **Agent IA** | n8n AI Agent | **GPT-4o-mini (OpenAI)** — temp. 0.1–0.2 extraction, 0.5–0.7 relances |
+| **Orchestration** | **n8n Cloud** | 4 workflows (qualification → calcul → PDF → relances) |
 | **Données / CRM** | **Airtable** | Base `NeoTravel V2` — 7 tables liées |
 | **Calcul devis** | `calculer_devis()` | Moteur JS déterministe — jamais le LLM |
 | **Géocodage** | api-adresse.data.gouv.fr | Coordonnées GPS des villes |
 | **Distance** | OSRM | Distance routière réelle (km) |
-| **Email** | Resend / Brevo | Envoi devis + relances automatiques |
+| **Email** | **Gmail SMTP + Nodemailer** | 4 templates HTML (devis, relance×2, cas complexe) |
 | **Tests** | Vitest | Golden set du moteur de tarification |
-| **Budget infra** | — | ~25–55 €/mois (bien sous 1 000 €/mois) |
+| **Budget total** | — | **25–35 €/mois** (n8n Starter 20 € + GPT-4o-mini ~10 €) |
 
 ---
 
@@ -142,7 +142,7 @@ Les exports JSON sont versionnés dans [`n8n/`](n8n/) et importables directement
 
 ### Workflow 3 — PDF + Email
 - Génère le devis formaté en **PDF**
-- Envoie l'email au prospect via Resend/Brevo
+- Envoie l'email au prospect via Gmail SMTP + Nodemailer
 - Met à jour le statut dans le CRM
 
 ### Workflow 4 — Relances automatiques
@@ -284,13 +284,15 @@ Voir [`.env.example`](.env.example) pour la liste complète.
 
 ## 👥 Équipe — Groupe 7, MBA1 Epitech 2026
 
-| Membre | Rôle principal |
-|---|---|
-| **Cedric Enzo Kouokam** | Dossier de cadrage, analyse métier, priorisation, architecture système, déploiement |
-| **Robin Petit** | Développement backend / n8n |
-| **Le Phuong Thao Hoang** | Développement frontend |
-| **Léa Klein** | Design UX / documentation |
-| **Camille Chabanon** | Tests & validation QA |
+> ✅ Soutenance effectuée le 01/07/2026
+
+| Personne | Membre | Périmètre |
+|---|---|---|
+| **P1** | Frontend | Next.js landing + chatbot + espace commercial |
+| **P2** | n8n Agent | Workflows n8n AI Agent, tool calling, JSON |
+| **P3** | Calcul devis | `calculer_devis()` déterministe + génération PDF |
+| **P4** | Airtable | 7 tables, dashboard Interface direction |
+| **P5 — Cedric Enzo Kouokam** | **Emails & Relances** | Templates HTML × 4, Nodemailer Gmail SMTP, scheduler relances J+3/J+7, idempotence anti-doublon |
 
 ---
 
